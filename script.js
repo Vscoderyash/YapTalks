@@ -10,9 +10,15 @@ const state = {
   currentRoomId: null,
   localMuted: false,
   cameraOff: false,
+  socketClientLoadPromise: null,
 };
 
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
+const SOCKET_CLIENT_URLS = [
+  "/socket.io/socket.io.js",
+  "https://cdn.socket.io/4.8.1/socket.io.min.js",
+  "https://unpkg.com/socket.io-client@4.8.1/dist/socket.io.min.js",
+];
 
 const participantSets = [
   ["Host", "Music Fan", "Night Owl", "Campus Rep", "Mod"],
@@ -153,6 +159,63 @@ function addMessage(author, text, type = "incoming") {
   wrapper.appendChild(bodyEl);
   chatFeed.appendChild(wrapper);
   chatFeed.scrollTop = chatFeed.scrollHeight;
+}
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-src="${url}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "true") {
+        resolve();
+        return;
+      }
+
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error(`Failed to load ${url}`)), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = url;
+    script.async = true;
+    script.dataset.src = url;
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => {
+      reject(new Error(`Failed to load ${url}`));
+    }, { once: true });
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureSocketClient() {
+  if (typeof io === "function") {
+    return true;
+  }
+
+  if (state.socketClientLoadPromise) {
+    await state.socketClientLoadPromise;
+    return typeof io === "function";
+  }
+
+  state.socketClientLoadPromise = (async () => {
+    for (const url of SOCKET_CLIENT_URLS) {
+      try {
+        await loadScript(url);
+        if (typeof io === "function") {
+          return;
+        }
+      } catch (error) {
+        // Try the next fallback source.
+      }
+    }
+  })();
+
+  await state.socketClientLoadPromise;
+  state.socketClientLoadPromise = null;
+  return typeof io === "function";
 }
 
 function parseInterests() {
@@ -366,14 +429,15 @@ async function handleMatched(payload) {
   }
 }
 
-function connectSocketIfNeeded() {
+async function connectSocketIfNeeded() {
   if (state.socket) {
-    return;
+    return true;
   }
 
-  if (typeof io !== "function") {
-    addMessage("System", "Socket client is missing. Start this app through the Node server.");
-    return;
+  const clientReady = await ensureSocketClient();
+  if (!clientReady) {
+    addMessage("System", "Socket client failed to load. Refresh the page and check your network/adblock settings.");
+    return false;
   }
 
   const socket = io(state.backendUrl, {
@@ -451,11 +515,13 @@ function connectSocketIfNeeded() {
       addMessage("System", "Network candidate update failed, retrying with next packet.");
     }
   });
+
+  return true;
 }
 
 async function requestMatch(useNext = false) {
-  connectSocketIfNeeded();
-  if (!state.socket) {
+  const connected = await connectSocketIfNeeded();
+  if (!connected || !state.socket) {
     return;
   }
 
@@ -474,14 +540,14 @@ async function requestMatch(useNext = false) {
   state.socket.emit("request-match", options);
 }
 
-function sendChat() {
+async function sendChat() {
   const text = chatInput.value.trim();
   if (!text) {
     return;
   }
 
-  connectSocketIfNeeded();
-  if (!state.socket || !state.currentRoomId) {
+  const connected = await connectSocketIfNeeded();
+  if (!connected || !state.socket || !state.currentRoomId) {
     addMessage("System", "Start a match first, then send chat messages.");
     return;
   }
@@ -578,7 +644,9 @@ nextMatchButton.addEventListener("click", async () => {
   await requestMatch(true);
 });
 
-sendButton.addEventListener("click", sendChat);
+sendButton.addEventListener("click", async () => {
+  await sendChat();
+});
 
 muteButton.addEventListener("click", () => {
   state.localMuted = !state.localMuted;
@@ -607,7 +675,7 @@ joinRoomButton.addEventListener("click", joinRoom);
 
 chatInput.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-    sendChat();
+    void sendChat();
   }
 });
 
