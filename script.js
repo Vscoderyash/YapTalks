@@ -14,11 +14,16 @@ const state = {
 };
 
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
-const SOCKET_CLIENT_URLS = [
-  "/socket.io/socket.io.js",
-  "https://cdn.socket.io/4.8.1/socket.io.min.js",
-  "https://unpkg.com/socket.io-client@4.8.1/dist/socket.io.min.js",
-];
+
+function getSocketClientUrls() {
+  const backendBase = normalizeBackendUrl(state.backendUrl || DEPLOYED_BACKEND_URL);
+  return [
+    `${backendBase}/socket.io/socket.io.js`,
+    "/socket.io/socket.io.js",
+    "https://cdn.socket.io/4.8.1/socket.io.min.js",
+    "https://unpkg.com/socket.io-client@4.8.1/dist/socket.io.min.js",
+  ];
+}
 
 const participantSets = [
   ["Host", "Music Fan", "Night Owl", "Campus Rep", "Mod"],
@@ -201,7 +206,7 @@ async function ensureSocketClient() {
   }
 
   state.socketClientLoadPromise = (async () => {
-    for (const url of SOCKET_CLIENT_URLS) {
+    for (const url of getSocketClientUrls()) {
       try {
         await loadScript(url);
         if (typeof io === "function") {
