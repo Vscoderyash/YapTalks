@@ -2,6 +2,7 @@ const state = {
   mode: "video",
   filter: "all",
   billing: "monthly",
+  backendUrl: null,
   stream: null,
   socket: null,
   peerConnection: null,
@@ -69,6 +70,61 @@ const roomOutput = document.getElementById("roomOutput");
 const roomTitle = document.getElementById("roomTitle");
 const roomBadge = document.getElementById("roomBadge");
 const participantCloud = document.getElementById("participantCloud");
+
+function normalizeBackendUrl(rawValue) {
+  const sameOriginDefault = window.location.origin && window.location.origin !== "null"
+    ? window.location.origin
+    : "http://localhost:3000";
+
+  if (!rawValue || typeof rawValue !== "string") {
+    return sameOriginDefault;
+  }
+
+  let value = rawValue.trim();
+  if (!value) {
+    return sameOriginDefault;
+  }
+
+  if (value === "same-origin") {
+    return sameOriginDefault;
+  }
+
+  if (value.startsWith("//")) {
+    value = `${window.location.protocol}${value}`;
+  } else if (!value.startsWith("http://") && !value.startsWith("https://")) {
+    value = `https://${value}`;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch (error) {
+    return sameOriginDefault;
+  }
+}
+
+function resolveBackendUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const queryBackend = params.get("backend");
+  const resetBackend = params.get("reset_backend");
+  const savedBackend = localStorage.getItem("yaptalks_backend_url");
+
+  if (resetBackend === "1") {
+    localStorage.removeItem("yaptalks_backend_url");
+  }
+
+  if (queryBackend) {
+    const normalized = normalizeBackendUrl(queryBackend);
+    localStorage.setItem("yaptalks_backend_url", normalized);
+    return normalized;
+  }
+
+  if (savedBackend) {
+    return normalizeBackendUrl(savedBackend);
+  }
+
+  return normalizeBackendUrl("same-origin");
+}
 
 function setActive(elements, activeValue, attribute) {
   elements.forEach((element) => {
@@ -314,13 +370,15 @@ function connectSocketIfNeeded() {
     return;
   }
 
-  const socket = io();
+  const socket = io(state.backendUrl, {
+    transports: ["websocket", "polling"],
+  });
   state.socket = socket;
 
   socket.on("connect", () => {
     queueStatus.textContent = "Online";
     matchQuality.textContent = "Ready to match";
-    addMessage("System", "Connected to YapTalks live server.");
+    addMessage("System", `Connected to YapTalks live server (${state.backendUrl}).`);
   });
 
   socket.on("disconnect", () => {
@@ -552,6 +610,7 @@ updateInterestLabel();
 updateSafetyLabel();
 updateModeBadge();
 updateRevenue();
+state.backendUrl = resolveBackendUrl();
 setDisconnectedUI("Ready");
 applyLocalTrackStates();
 

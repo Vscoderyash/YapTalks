@@ -23,6 +23,37 @@ YapTalks is a branded random video and text chat website inspired by Omegle and 
 
 To test random matching, open two different browser windows/devices on the same server URL and press `Find stranger`.
 
+## Deploy with Koyeb backend + Vercel frontend
+
+### 1) Backend on Koyeb
+
+1. Create a new **Web Service** in Koyeb from this GitHub repo.
+2. Runtime: Node.js
+3. Build command: `npm install`
+4. Start command: `npm start`
+5. Port: use Koyeb default `PORT` environment variable (already supported by `server.js`)
+6. Deploy and copy your backend URL:
+   Example: `https://your-yaptalks-api.koyeb.app`
+
+### 2) Frontend on Vercel
+
+1. Import same repo in Vercel.
+2. Application preset: `Other`
+3. Root directory: `./`
+4. Deploy.
+
+### 3) Connect frontend to backend URL
+
+Open your Vercel site with this once:
+
+`https://your-frontend.vercel.app/?backend=https://your-yaptalks-api.koyeb.app`
+
+YapTalks stores that backend URL in browser localStorage automatically.
+
+If you need to reset backend URL:
+
+`https://your-frontend.vercel.app/?reset_backend=1`
+
 ## Owner monetization model
 
 Users do not earn money on YapTalks.  
