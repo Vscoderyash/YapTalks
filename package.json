@@ -1,0 +1,15 @@
+{
+  "name": "yaptalks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "YapTalks random video and text chat with owner-only monetization.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
