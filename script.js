@@ -12,6 +12,8 @@ const state = {
   cameraOff: false,
 };
 
+const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
+
 const participantSets = [
   ["Host", "Music Fan", "Night Owl", "Campus Rep", "Mod"],
   ["Admin", "Guest 1", "Guest 2", "VIP", "Sponsor"],
@@ -121,6 +123,10 @@ function resolveBackendUrl() {
 
   if (savedBackend) {
     return normalizeBackendUrl(savedBackend);
+  }
+
+  if (window.location.hostname.endsWith("vercel.app")) {
+    return normalizeBackendUrl(DEPLOYED_BACKEND_URL);
   }
 
   return normalizeBackendUrl("same-origin");
