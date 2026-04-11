@@ -41,6 +41,7 @@ To test random matching, open two different browser windows/devices on the same 
 2. Application preset: `Other`
 3. Root directory: `./`
 4. Deploy.
+5. This repo includes `vercel.json` with `/socket.io/*` rewrite to Render backend.
 
 ### 3) Connect frontend to backend URL
 
@@ -53,6 +54,8 @@ YapTalks stores that backend URL in browser localStorage automatically.
 If you need to reset backend URL:
 
 `https://your-frontend.vercel.app/?reset_backend=1`
+
+If Vercel keeps serving old code, redeploy with cache disabled from Vercel dashboard.
 
 ## Owner monetization model
 
