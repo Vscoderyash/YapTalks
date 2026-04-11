@@ -1,4 +1,7 @@
 {
+  "installCommand": "echo \"Skipping install for static frontend deploy\"",
+  "buildCommand": "echo \"No build step required\"",
+  "outputDirectory": ".",
   "rewrites": [
     {
       "source": "/socket.io/:path*",

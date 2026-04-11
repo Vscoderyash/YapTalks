@@ -41,7 +41,9 @@ To test random matching, open two different browser windows/devices on the same 
 2. Application preset: `Other`
 3. Root directory: `./`
 4. Deploy.
-5. This repo includes `vercel.json` with `/socket.io/*` rewrite to Render backend.
+5. This repo includes `vercel.json` with:
+   - static frontend deploy commands
+   - `/socket.io/*` rewrite to Render backend.
 
 ### 3) Connect frontend to backend URL
 
