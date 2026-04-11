@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="YapTalks live video chat">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff7e2"/>
+      <stop offset="50%" stop-color="#e8f4f1"/>
+      <stop offset="100%" stop-color="#f1f4ed"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6b2c"/>
+      <stop offset="100%" stop-color="#ff8f5c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="88" y="88" width="1024" height="454" rx="36" fill="#fffdf7" opacity="0.92"/>
+  <rect x="130" y="130" width="120" height="120" rx="28" fill="url(#brand)"/>
+  <text x="190" y="206" text-anchor="middle" font-family="Sora, Arial, sans-serif" font-size="54" font-weight="800" fill="#ffffff">YT</text>
+  <text x="290" y="200" font-family="Sora, Arial, sans-serif" font-size="74" font-weight="800" fill="#151515">YapTalks</text>
+  <text x="290" y="264" font-family="Space Grotesk, Arial, sans-serif" font-size="36" fill="#5f5b54">Live Video Chat and Text Chat</text>
+  <text x="290" y="322" font-family="Space Grotesk, Arial, sans-serif" font-size="28" fill="#0f8a78">Secure matching • Private rooms • Real-time messaging</text>
+  <text x="130" y="500" font-family="Space Grotesk, Arial, sans-serif" font-size="28" fill="#5f5b54">Built by Yash Raj</text>
+</svg>

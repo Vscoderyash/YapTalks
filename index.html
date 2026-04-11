@@ -3,11 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta
-    name="description"
-    content="YapTalks is a bold random video chat and group hangout platform with premium plans and ad placements owned by Yash Raj."
-  >
-  <title>YapTalks | Random Video Chat by Yash Raj</title>
+  <meta name="description" content="YapTalks by Yash Raj is a secure live video chat and text chat platform with fast random matching, private rooms, and modern moderation tools.">
+  <meta name="keywords" content="YapTalks, video chat, live video call, random video chat, online text chat, secure video chat, group video room, Yash Raj">
+  <meta name="author" content="Yash Raj">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#ff6b2c">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YapTalks">
+  <meta property="og:title" content="YapTalks - Live Video Chat and Text Chat by Yash Raj">
+  <meta property="og:description" content="Join YapTalks for secure live video chat, random matching, and real-time text chat with modern moderation.">
+  <meta property="og:url" content="https://yaptalks.onrender.com/">
+  <meta property="og:image" content="https://yaptalks.onrender.com/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="YapTalks - Live Video Chat and Text Chat">
+  <meta name="twitter:description" content="Secure real-time video calls and text chat on YapTalks.">
+  <meta name="twitter:image" content="https://yaptalks.onrender.com/og-image.svg">
+  <link rel="canonical" href="https://yaptalks.onrender.com/">
+  <title>YapTalks | Live Video Chat and Text Chat by Yash Raj</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -15,6 +27,28 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "YapTalks",
+      "url": "https://yaptalks.onrender.com/",
+      "description": "Live video chat and text chat platform by Yash Raj.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "YapTalks",
+        "founder": {
+          "@type": "Person",
+          "name": "Yash Raj"
+        }
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://yaptalks.onrender.com/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="page-shell">
@@ -34,14 +68,48 @@
         <a href="#safety">Safety</a>
       </nav>
 
-      <a class="ghost-button" href="#app">Launch Live</a>
+      <div class="topbar-actions">
+        <a class="ghost-button" href="#app">Launch Live</a>
+        <button id="logoutButton" class="ghost-button" type="button" hidden>Log out</button>
+      </div>
     </header>
 
     <main>
+      <section class="auth-shell" id="authGate">
+        <div class="auth-card">
+          <span class="eyebrow">Secure access</span>
+          <h1>Welcome to YapTalks</h1>
+          <p>Sign in before entering live video chat and text chat. Your account helps keep conversations safer and trusted.</p>
+
+          <label class="field">
+            <span>Name (optional)</span>
+            <input id="authName" type="text" placeholder="Your name">
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input id="authPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
+          </label>
+
+          <div class="auth-actions">
+            <button id="loginButton" class="primary-button wide" type="button">Log in</button>
+            <button id="signupButton" class="secondary-button wide" type="button">Create account</button>
+          </div>
+
+          <p id="authMessage" class="auth-message">Sign in to unlock real-time chat.</p>
+        </div>
+      </section>
+
+      <div id="appContent" hidden>
       <section class="hero-section" id="hero">
         <div class="hero-copy">
           <div class="eyebrow">Random video chat, group rooms, owner monetization</div>
-          <h1>YapTalks brings the energy of Omegle and Monkey into one premium-ready experience.</h1>
+          <h2 class="hero-title">YapTalks delivers premium live video chat with a professional, fast, and secure experience.</h2>
           <p>
             Spin into random video chats, open instant group rooms, unlock subscriptions,
             and earn as the site owner through ads and premium plans built into a bold Gen-Z style interface.
@@ -405,7 +473,7 @@
             <h2>Safer than the old anonymous chat model.</h2>
           </div>
           <p>
-            Launching something Omegle-inspired today means better moderation, reporting,
+            Launching a modern live chat platform today means better moderation, reporting,
             identity controls, and age-aware safety design from the start.
           </p>
         </div>
@@ -429,6 +497,7 @@
           </article>
         </div>
       </section>
+      </div>
     </main>
 
     <footer class="footer">
@@ -443,7 +512,7 @@
     </footer>
   </div>
 
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script type="module" src="auth.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

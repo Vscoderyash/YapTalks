@@ -11,6 +11,8 @@ const state = {
   localMuted: false,
   cameraOff: false,
   socketClientLoadPromise: null,
+  authReady: false,
+  isAuthenticated: false,
 };
 
 const FRONTEND_BUILD_ID = "2026-04-11-01";
@@ -136,12 +138,7 @@ function resolveBackendUrl() {
   if (savedBackend) {
     return normalizeBackendUrl(savedBackend);
   }
-
-  if (window.location.hostname.endsWith("vercel.app")) {
-    return normalizeBackendUrl(DEPLOYED_BACKEND_URL);
-  }
-
-  return normalizeBackendUrl("same-origin");
+  return normalizeBackendUrl(DEPLOYED_BACKEND_URL);
 }
 
 function setActive(elements, activeValue, attribute) {
@@ -165,6 +162,25 @@ function addMessage(author, text, type = "incoming") {
   wrapper.appendChild(bodyEl);
   chatFeed.appendChild(wrapper);
   chatFeed.scrollTop = chatFeed.scrollHeight;
+}
+
+function syncAuthState() {
+  const authState = window.yapTalksAuth;
+  state.authReady = Boolean(authState?.ready);
+  state.isAuthenticated = Boolean(authState?.isAuthenticated);
+}
+
+function ensureAuthenticated(actionLabel) {
+  syncAuthState();
+  if (state.isAuthenticated) {
+    return true;
+  }
+
+  const message = state.authReady
+    ? `Please log in first to ${actionLabel}.`
+    : "Checking account status. Please wait.";
+  addMessage("System", message);
+  return false;
 }
 
 function loadScript(url) {
@@ -526,6 +542,10 @@ async function connectSocketIfNeeded() {
 }
 
 async function requestMatch(useNext = false) {
+  if (!ensureAuthenticated("start chat")) {
+    return;
+  }
+
   const connected = await connectSocketIfNeeded();
   if (!connected || !state.socket) {
     return;
@@ -547,6 +567,10 @@ async function requestMatch(useNext = false) {
 }
 
 async function sendChat() {
+  if (!ensureAuthenticated("send messages")) {
+    return;
+  }
+
   const text = chatInput.value.trim();
   if (!text) {
     return;
@@ -639,6 +663,9 @@ billingPills.forEach((button) => {
 });
 
 previewButton.addEventListener("click", async () => {
+  if (!ensureAuthenticated("enable camera")) {
+    return;
+  }
   await ensureLocalStream();
 });
 
@@ -709,4 +736,33 @@ window.addEventListener("beforeunload", () => {
       track.stop();
     });
   }
+});
+
+window.addEventListener("yaptalks-auth-changed", (event) => {
+  const detail = event.detail || {};
+  state.authReady = true;
+  state.isAuthenticated = Boolean(detail.isAuthenticated);
+
+  if (!state.isAuthenticated) {
+    clearCurrentMatch("Logged out");
+
+    if (state.socket) {
+      state.socket.disconnect();
+      state.socket = null;
+    }
+
+    if (state.stream) {
+      state.stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      state.stream = null;
+      localVideo.srcObject = null;
+      localFallback.hidden = false;
+      previewButton.textContent = "Enable camera preview";
+    }
+
+    return;
+  }
+
+  addMessage("System", "Logged in successfully. You can start live chat now.");
 });

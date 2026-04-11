@@ -1,16 +1,18 @@
 # YapTalks
 
-YapTalks is a branded random video and text chat website inspired by Omegle and Monkey, made by Yash Raj.
+YapTalks is a branded random video and text chat website made by Yash Raj.
 
 ## What is included
 
 - Live random matching with Socket.IO queueing
 - Live one-to-one text chat between matched users
 - Live browser WebRTC signaling for video calls
+- Firebase login gate before entering chat
 - Camera and mic controls (mute/camera toggle/report+skip)
 - Group room UI section (frontend flow)
 - Subscription pricing section
 - Owner-only ad and revenue simulation section
+- SEO basics: metadata, schema, robots.txt, sitemap.xml
 
 ## Run locally
 
@@ -23,41 +25,22 @@ YapTalks is a branded random video and text chat website inspired by Omegle and 
 
 To test random matching, open two different browser windows/devices on the same server URL and press `Find stranger`.
 
-## Deploy with Koyeb backend + Vercel frontend
+## Deploy on Render (recommended)
 
-### 1) Backend on Koyeb
+1. Create a new **Web Service** in Render from this GitHub repo.
+2. Render auto-detects `render.yaml` in the root.
+3. Confirm settings:
+   - Runtime: Node
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Plan: Free (or higher if needed)
+4. Deploy and open your Render URL.
+5. Test login and matching:
+   - Create account / login on the auth page
+   - Open two browser tabs or two devices
+   - Click `Find stranger` on both tabs
 
-1. Create a new **Web Service** in Koyeb from this GitHub repo.
-2. Runtime: Node.js
-3. Build command: `npm install`
-4. Start command: `npm start`
-5. Port: use Koyeb default `PORT` environment variable (already supported by `server.js`)
-6. Deploy and copy your backend URL:
-   Example: `https://your-yaptalks-api.koyeb.app`
-
-### 2) Frontend on Vercel
-
-1. Import same repo in Vercel.
-2. Application preset: `Other`
-3. Root directory: `./`
-4. Deploy.
-5. This repo includes `vercel.json` with:
-   - static frontend deploy commands
-   - `/socket.io/*` rewrite to Render backend.
-
-### 3) Connect frontend to backend URL
-
-Open your Vercel site with this once:
-
-`https://your-frontend.vercel.app/?backend=https://your-yaptalks-api.koyeb.app`
-
-YapTalks stores that backend URL in browser localStorage automatically.
-
-If you need to reset backend URL:
-
-`https://your-frontend.vercel.app/?reset_backend=1`
-
-If Vercel keeps serving old code, redeploy with cache disabled from Vercel dashboard.
+For production scale, move to a paid plan to reduce cold starts and improve call stability.
 
 ## Owner monetization model
 
