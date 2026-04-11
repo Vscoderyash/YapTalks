@@ -3,27 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="YapTalks by Yash Raj is a secure live video chat and text chat platform with fast random matching, private rooms, and modern moderation tools.">
-  <meta name="keywords" content="YapTalks, video chat, live video call, random video chat, online text chat, secure video chat, group video room, Yash Raj">
+  <meta name="description" content="YapTalks is a secure real-time random video chat and text chat platform created by Yash Raj.">
+  <meta name="keywords" content="YapTalks, random video chat, video call, live text chat, online chat, Yash Raj">
   <meta name="author" content="Yash Raj">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  <meta name="theme-color" content="#ff6b2c">
+  <meta name="theme-color" content="#00b894">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="YapTalks">
-  <meta property="og:title" content="YapTalks - Live Video Chat and Text Chat by Yash Raj">
-  <meta property="og:description" content="Join YapTalks for secure live video chat, random matching, and real-time text chat with modern moderation.">
+  <meta property="og:title" content="YapTalks | Secure Video Chat and Text Chat">
+  <meta property="og:description" content="Join YapTalks for fast random matching and clean real-time chat.">
   <meta property="og:url" content="https://yaptalks.onrender.com/">
   <meta property="og:image" content="https://yaptalks.onrender.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="YapTalks - Live Video Chat and Text Chat">
-  <meta name="twitter:description" content="Secure real-time video calls and text chat on YapTalks.">
+  <meta name="twitter:title" content="YapTalks | Secure Video Chat and Text Chat">
+  <meta name="twitter:description" content="Random video chat and text chat by YapTalks.">
   <meta name="twitter:image" content="https://yaptalks.onrender.com/og-image.svg">
   <link rel="canonical" href="https://yaptalks.onrender.com/">
-  <title>YapTalks | Live Video Chat and Text Chat by Yash Raj</title>
+  <title>YapTalks | Random Video Chat & Text Chat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet"
   >
   <link rel="stylesheet" href="styles.css">
@@ -33,7 +33,7 @@
       "@type": "WebSite",
       "name": "YapTalks",
       "url": "https://yaptalks.onrender.com/",
-      "description": "Live video chat and text chat platform by Yash Raj.",
+      "description": "Real-time random video chat and text chat platform by Yash Raj.",
       "publisher": {
         "@type": "Organization",
         "name": "YapTalks",
@@ -41,11 +41,6 @@
           "@type": "Person",
           "name": "Yash Raj"
         }
-      },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://yaptalks.onrender.com/?q={search_term_string}",
-        "query-input": "required name=search_term_string"
       }
     }
   </script>
@@ -53,7 +48,7 @@
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a class="brand" href="#hero">
+      <a class="brand" href="#app">
         <span class="brand-mark">YT</span>
         <span>
           <strong>YapTalks</strong>
@@ -61,25 +56,18 @@
         </span>
       </a>
 
-      <nav class="nav-links">
-        <a href="#experience">Experience</a>
-        <a href="#pricing">Subscriptions</a>
-        <a href="#monetization">Ads & Earnings</a>
-        <a href="#safety">Safety</a>
-      </nav>
-
       <div class="topbar-actions">
-        <a class="ghost-button" href="#app">Launch Live</a>
+        <span class="status-pill">Live platform</span>
         <button id="logoutButton" class="ghost-button" type="button" hidden>Log out</button>
       </div>
     </header>
 
     <main>
       <section class="auth-shell" id="authGate">
-        <div class="auth-card">
-          <span class="eyebrow">Secure access</span>
+        <div class="auth-card panel">
+          <span class="eyebrow">Secure Login</span>
           <h1>Welcome to YapTalks</h1>
-          <p>Sign in before entering live video chat and text chat. Your account helps keep conversations safer and trusted.</p>
+          <p>Sign in before entering random video chat and text chat.</p>
 
           <label class="field">
             <span>Name (optional)</span>
@@ -101,125 +89,45 @@
             <button id="signupButton" class="secondary-button wide" type="button">Create account</button>
           </div>
 
-          <p id="authMessage" class="auth-message">Sign in to unlock real-time chat.</p>
+          <p id="authMessage" class="auth-message">Sign in to continue.</p>
         </div>
       </section>
 
-      <div id="appContent" hidden>
-      <section class="hero-section" id="hero">
-        <div class="hero-copy">
-          <div class="eyebrow">Random video chat, group rooms, owner monetization</div>
-          <h2 class="hero-title">YapTalks delivers premium live video chat with a professional, fast, and secure experience.</h2>
-          <p>
-            Spin into random video chats, open instant group rooms, unlock subscriptions,
-            and earn as the site owner through ads and premium plans built into a bold Gen-Z style interface.
-          </p>
-
-          <div class="hero-actions">
-            <a class="primary-button" href="#app">Start random chat</a>
-            <a class="secondary-button" href="#pricing">See monetization</a>
-          </div>
-
-          <div class="hero-points">
-            <span>Video + text chat</span>
-            <span>Interest matching</span>
-            <span>Premium filters</span>
-            <span>Ad inventory ready</span>
-          </div>
-        </div>
-
-        <div class="hero-panel">
-          <div class="floating-card card-a">
-            <span class="card-label">Live Queue</span>
-            <strong>8,426</strong>
-            <p>People online right now</p>
-          </div>
-
-          <div class="floating-card card-b">
-            <span class="card-label">Premium</span>
-            <strong>YapTalks+</strong>
-            <p>Priority matching, private rooms, ad-light mode</p>
-          </div>
-
-          <div class="phone-mockup">
-            <div class="phone-header">
-              <span class="status-dot"></span>
-              <span>Random call now</span>
-            </div>
-            <div class="phone-body">
-              <div class="remote-preview">
-                <span class="remote-badge">Stranger</span>
-                <div class="pulse-orb"></div>
-              </div>
-              <div class="local-preview">
-                <span>You</span>
-              </div>
-            </div>
-            <div class="phone-footer">
-              <button type="button">Next</button>
-              <button type="button">Text</button>
-              <button type="button">Gift</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="feature-strip" id="experience">
-        <article>
-          <span>01</span>
-          <h2>Random matching</h2>
-          <p>Interest-based matching, premium filters, and a fast next-user flow.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h2>Group rooms</h2>
-          <p>Create shareable hangout rooms for friends, communities, or fan chats.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h2>Owner revenue</h2>
-          <p>Site-owner ads, premium plans, and sponsored placements without paying users.</p>
-        </article>
-      </section>
-
-      <section class="app-section" id="app">
-        <div class="section-heading">
+      <section id="appContent" hidden>
+        <div class="app-header">
           <div>
-            <span class="eyebrow">Interactive live product</span>
-            <h2>Feel how YapTalks could work in-browser.</h2>
+            <span class="eyebrow">Real-time Chat</span>
+            <h2>Professional random chat experience</h2>
           </div>
-          <p>
-            This build includes live camera preview, live random matching,
-            real chat messaging, subscriptions, and owner monetization widgets.
-          </p>
+          <p>Enable camera, find a match, and chat instantly.</p>
         </div>
 
-        <div class="app-grid">
-          <aside class="control-panel panel">
-            <h3>Match controls</h3>
+        <div class="app-grid" id="app">
+          <aside class="panel control-panel">
+            <h3>Match Setup</h3>
 
             <label class="field">
               <span>Interests</span>
-              <input id="interestInput" type="text" placeholder="music, coding, gaming, anime">
+              <input id="interestInput" type="text" placeholder="music, coding, gaming">
             </label>
 
             <div class="toggle-grid">
               <button class="pill active" data-mode="video" type="button">Video</button>
-              <button class="pill" data-mode="text" type="button">Text only</button>
-              <button class="pill" data-filter="all" type="button">Anyone</button>
+              <button class="pill" data-mode="text" type="button">Text</button>
+              <button class="pill active" data-filter="all" type="button">Anyone</button>
               <button class="pill" data-filter="premium" type="button">Premium</button>
             </div>
 
             <div class="checkbox-stack">
-              <label><input id="translationToggle" type="checkbox"> Auto translate captions</label>
-              <label><input id="safetyToggle" type="checkbox" checked> Safer matching mode</label>
-              <label><input id="adLightToggle" type="checkbox"> Ad-light with subscription</label>
+              <label><input id="safetyToggle" type="checkbox" checked> Safer matching</label>
+              <label><input id="translationToggle" type="checkbox"> Auto captions</label>
+              <label><input id="adLightToggle" type="checkbox"> Ad-light mode</label>
             </div>
 
             <div class="action-stack">
-              <button class="primary-button wide" id="previewButton" type="button">Enable camera preview</button>
-              <button class="secondary-button wide" id="findMatchButton" type="button">Find stranger</button>
-              <button class="ghost-button wide" id="nextMatchButton" type="button">Next person</button>
+              <button class="secondary-button wide" id="previewButton" type="button">Enable camera preview</button>
+              <button class="primary-button wide" id="findMatchButton" type="button">Find match</button>
+              <button class="ghost-button wide" id="nextMatchButton" type="button">Next match</button>
             </div>
 
             <div class="mini-stats">
@@ -229,26 +137,26 @@
               </div>
               <div>
                 <span>Match quality</span>
-                <strong id="matchQuality">Awaiting setup</strong>
+                <strong id="matchQuality">Ready</strong>
               </div>
             </div>
           </aside>
 
-          <section class="video-stage panel">
+          <section class="panel video-stage">
             <div class="stage-topbar">
               <div>
                 <span class="stage-label">Live call</span>
-                <h3 id="matchHeadline">No stranger connected yet</h3>
+                <h3 id="matchHeadline">No active match</h3>
               </div>
               <span class="badge" id="modeBadge">Video Mode</span>
             </div>
 
             <div class="video-stack">
               <div class="remote-stage">
-                <video id="remoteVideo" autoplay playsinline muted></video>
+                <video id="remoteVideo" autoplay playsinline></video>
                 <div class="remote-overlay" id="remoteOverlay">
                   <div class="remote-orb"></div>
-                  <p id="matchDescription">Click "Find stranger" to start a live random YapTalks match.</p>
+                  <p id="matchDescription">Press "Find match" to start chatting.</p>
                 </div>
               </div>
 
@@ -271,13 +179,13 @@
             </div>
           </section>
 
-          <aside class="chat-panel panel">
+          <aside class="panel chat-panel">
             <div class="chat-header">
               <div>
-                <span class="eyebrow">Yap chat</span>
-                <h3>Text sidecar</h3>
+                <span class="eyebrow">Chat</span>
+                <h3>Messages</h3>
               </div>
-              <span class="badge">Real-time</span>
+              <span class="badge">Live</span>
             </div>
 
             <div class="chat-feed" id="chatFeed">
@@ -288,227 +196,20 @@
             </div>
 
             <div class="chat-composer">
-              <textarea id="chatInput" rows="3" placeholder="Say hi, ask a question, or drop your best opener..."></textarea>
+              <textarea id="chatInput" rows="3" placeholder="Type your message..."></textarea>
               <button class="primary-button wide" id="sendButton" type="button">Send message</button>
             </div>
           </aside>
         </div>
       </section>
-
-      <section class="rooms-section">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">Group chat and call rooms</span>
-            <h2>Spin up a room link for friends in seconds.</h2>
-          </div>
-          <p>
-            Use this section for public watch rooms, fan meetups, study groups,
-            or subscription-only private lounges.
-          </p>
-        </div>
-
-        <div class="rooms-grid">
-          <div class="panel room-builder">
-            <h3>Create or join a room</h3>
-
-            <label class="field">
-              <span>Room vibe</span>
-              <input id="roomTopicInput" type="text" placeholder="Late night yapping club">
-            </label>
-
-            <label class="field">
-              <span>Invite code</span>
-              <input id="roomCodeInput" type="text" placeholder="Enter a code or create one">
-            </label>
-
-            <div class="action-stack">
-              <button class="primary-button wide" id="createRoomButton" type="button">Create room</button>
-              <button class="secondary-button wide" id="joinRoomButton" type="button">Join room</button>
-            </div>
-
-            <div class="room-output" id="roomOutput">
-              No room active yet. Create one to generate a YapTalks invite.
-            </div>
-          </div>
-
-          <div class="panel room-preview">
-            <div class="room-preview-header">
-              <div>
-                <span class="eyebrow">Live room</span>
-                <h3 id="roomTitle">Yap Squad Lounge</h3>
-              </div>
-              <span class="badge" id="roomBadge">4 seats open</span>
-            </div>
-
-            <div class="participant-cloud" id="participantCloud">
-              <span>Host</span>
-              <span>Guest 1</span>
-              <span>Guest 2</span>
-              <span>Moderator</span>
-            </div>
-
-            <div class="room-features">
-              <div>
-                <strong>Premium room perks</strong>
-                <p>Subscriber-only rooms, private access, and branded room layouts.</p>
-              </div>
-              <div>
-                <strong>Moderation tools</strong>
-                <p>Room locks, host approvals, shadow bans, and keyword filters.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="pricing-section" id="pricing">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">Subscription model</span>
-            <h2>Monetize with premium plans from day one.</h2>
-          </div>
-          <div class="billing-toggle">
-            <button class="pill active" data-billing="monthly" type="button">Monthly</button>
-            <button class="pill" data-billing="yearly" type="button">Yearly</button>
-          </div>
-        </div>
-
-        <div class="pricing-grid">
-          <article class="price-card">
-            <span class="plan-tag">Free</span>
-            <h3>Yap Basic</h3>
-            <strong class="price" data-monthly="$0" data-yearly="$0">$0</strong>
-            <p>Ad-supported random chat with essential text and video features.</p>
-            <ul>
-              <li>Unlimited random swipes</li>
-              <li>Standard text chat</li>
-              <li>Ad-supported experience</li>
-            </ul>
-          </article>
-
-          <article class="price-card featured">
-            <span class="plan-tag">Popular</span>
-            <h3>YapTalks+</h3>
-            <strong class="price" data-monthly="$9" data-yearly="$89">$9</strong>
-            <p>Private matching filters, ad-light mode, and better room hosting tools.</p>
-            <ul>
-              <li>Priority random match queue</li>
-              <li>Interest boosts and private rooms</li>
-              <li>Ad-light experience</li>
-            </ul>
-          </article>
-
-          <article class="price-card">
-            <span class="plan-tag">Premium</span>
-            <h3>YapTalks Gold</h3>
-            <strong class="price" data-monthly="$19" data-yearly="$189">$19</strong>
-            <p>Built for heavy users who want the cleanest premium experience and stronger filters.</p>
-            <ul>
-              <li>Advanced interest and region filters</li>
-              <li>Private room access and queue priority</li>
-              <li>Lowest-ad premium experience</li>
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section class="monetization-section" id="monetization">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">Ads and earnings</span>
-            <h2>Revenue for the site owner, not the users.</h2>
-          </div>
-          <p>
-            Keep chat free or low-cost for users while you earn from banner ads,
-            premium subscriptions, and sponsor placements just like this category usually does.
-          </p>
-        </div>
-
-        <div class="monetization-grid">
-          <div class="panel ad-stack">
-            <h3>Owner monetization</h3>
-            <div class="ad-card sponsor">
-              <span>Display ads</span>
-              <strong>Top banner inside the matching lobby sold by the platform owner</strong>
-            </div>
-            <div class="ad-card promo">
-              <span>Premium upgrades</span>
-              <strong>Paid plans for filters, private rooms, and reduced ads</strong>
-            </div>
-            <div class="ad-card native">
-              <span>Sponsor placement</span>
-              <strong>Skippable promo card between match sessions controlled by the owner</strong>
-            </div>
-          </div>
-
-          <div class="panel revenue-panel">
-            <h3>Revenue simulator</h3>
-            <label class="field">
-              <span>Daily active users</span>
-              <input id="usersRange" type="range" min="1000" max="50000" value="12000">
-            </label>
-            <label class="field">
-              <span>Premium conversion rate</span>
-              <input id="conversionRange" type="range" min="1" max="15" value="4">
-            </label>
-
-            <div class="revenue-results">
-              <div>
-                <span>Projected monthly ad revenue</span>
-                <strong id="adRevenue">$7,200</strong>
-              </div>
-              <div>
-                <span>Projected monthly owner subscription revenue</span>
-                <strong id="subscriptionRevenue">$43,200</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="safety-section" id="safety">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">Trust and moderation</span>
-            <h2>Safer than the old anonymous chat model.</h2>
-          </div>
-          <p>
-            Launching a modern live chat platform today means better moderation, reporting,
-            identity controls, and age-aware safety design from the start.
-          </p>
-        </div>
-
-        <div class="safety-grid">
-          <article class="panel">
-            <h3>Protective features</h3>
-            <ul class="safety-list">
-              <li>Block, report, and skip tools always visible during calls</li>
-              <li>Optional account gating for repeat offenders and premium rooms</li>
-              <li>Keyword detection, rate limits, and moderation queues</li>
-            </ul>
-          </article>
-          <article class="panel">
-            <h3>Launch stack suggestions</h3>
-            <ul class="safety-list">
-              <li>WebRTC or Daily/Agora for real video infrastructure</li>
-              <li>Stripe for premium plans owned by YapTalks</li>
-              <li>Google AdSense or direct brand deals for owner-run ads</li>
-            </ul>
-          </article>
-        </div>
-      </section>
-      </div>
     </main>
 
     <footer class="footer">
       <div>
         <strong>YapTalks</strong>
-        <p>Random conversations, group lounges, and owner-run monetization in one bold platform.</p>
+        <p>Secure random video chat and text chat platform.</p>
       </div>
-      <div class="footer-meta">
-        <span>Built for the web</span>
-        <span>Made by Yash Raj</span>
-      </div>
+      <span>Made by Yash Raj</span>
     </footer>
   </div>
 

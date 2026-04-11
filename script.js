@@ -1,7 +1,6 @@
 const state = {
   mode: "video",
   filter: "all",
-  billing: "monthly",
   backendUrl: null,
   stream: null,
   socket: null,
@@ -15,8 +14,63 @@ const state = {
   isAuthenticated: false,
 };
 
-const FRONTEND_BUILD_ID = "2026-04-11-01";
+const FRONTEND_BUILD_ID = "2026-04-11-02";
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
+
+const rtcConfig = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ],
+};
+
+const byId = (id) => document.getElementById(id);
+
+const modePills = document.querySelectorAll("[data-mode]");
+const filterPills = document.querySelectorAll("[data-filter]");
+
+const previewButton = byId("previewButton");
+const findMatchButton = byId("findMatchButton");
+const nextMatchButton = byId("nextMatchButton");
+const sendButton = byId("sendButton");
+const muteButton = byId("muteButton");
+const cameraButton = byId("cameraButton");
+const reportButton = byId("reportButton");
+
+const chatInput = byId("chatInput");
+const chatFeed = byId("chatFeed");
+const interestInput = byId("interestInput");
+const translationToggle = byId("translationToggle");
+const safetyToggle = byId("safetyToggle");
+const adLightToggle = byId("adLightToggle");
+
+const localVideo = byId("localVideo");
+const remoteVideo = byId("remoteVideo");
+const remoteOverlay = byId("remoteOverlay");
+const localFallback = byId("localFallback");
+const queueStatus = byId("queueStatus");
+const matchQuality = byId("matchQuality");
+const matchHeadline = byId("matchHeadline");
+const matchDescription = byId("matchDescription");
+const modeBadge = byId("modeBadge");
+const interestDisplay = byId("interestDisplay");
+const safetyDisplay = byId("safetyDisplay");
+
+function setText(element, text) {
+  if (element) {
+    element.textContent = text;
+  }
+}
+
+function setHidden(element, hidden) {
+  if (element) {
+    element.hidden = hidden;
+  }
+}
+
+function isChecked(element, fallback = false) {
+  return element ? Boolean(element.checked) : fallback;
+}
 
 function getSocketClientUrls() {
   const backendBase = normalizeBackendUrl(state.backendUrl || DEPLOYED_BACKEND_URL);
@@ -27,65 +81,6 @@ function getSocketClientUrls() {
     "https://unpkg.com/socket.io-client@4.8.1/dist/socket.io.min.js",
   ];
 }
-
-const participantSets = [
-  ["Host", "Music Fan", "Night Owl", "Campus Rep", "Mod"],
-  ["Admin", "Guest 1", "Guest 2", "VIP", "Sponsor"],
-  ["Coach", "Student", "Designer", "Streamer", "VIP"],
-];
-
-const rtcConfig = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-  ],
-};
-
-const modePills = document.querySelectorAll("[data-mode]");
-const filterPills = document.querySelectorAll("[data-filter]");
-const billingPills = document.querySelectorAll("[data-billing]");
-const priceElements = document.querySelectorAll(".price");
-
-const previewButton = document.getElementById("previewButton");
-const findMatchButton = document.getElementById("findMatchButton");
-const nextMatchButton = document.getElementById("nextMatchButton");
-const sendButton = document.getElementById("sendButton");
-const muteButton = document.getElementById("muteButton");
-const cameraButton = document.getElementById("cameraButton");
-const reportButton = document.getElementById("reportButton");
-
-const chatInput = document.getElementById("chatInput");
-const chatFeed = document.getElementById("chatFeed");
-const interestInput = document.getElementById("interestInput");
-const translationToggle = document.getElementById("translationToggle");
-const safetyToggle = document.getElementById("safetyToggle");
-const adLightToggle = document.getElementById("adLightToggle");
-
-const localVideo = document.getElementById("localVideo");
-const remoteVideo = document.getElementById("remoteVideo");
-const remoteOverlay = document.getElementById("remoteOverlay");
-const localFallback = document.getElementById("localFallback");
-const queueStatus = document.getElementById("queueStatus");
-const matchQuality = document.getElementById("matchQuality");
-const matchHeadline = document.getElementById("matchHeadline");
-const matchDescription = document.getElementById("matchDescription");
-const modeBadge = document.getElementById("modeBadge");
-const interestDisplay = document.getElementById("interestDisplay");
-const safetyDisplay = document.getElementById("safetyDisplay");
-
-const usersRange = document.getElementById("usersRange");
-const conversionRange = document.getElementById("conversionRange");
-const adRevenue = document.getElementById("adRevenue");
-const subscriptionRevenue = document.getElementById("subscriptionRevenue");
-
-const createRoomButton = document.getElementById("createRoomButton");
-const joinRoomButton = document.getElementById("joinRoomButton");
-const roomTopicInput = document.getElementById("roomTopicInput");
-const roomCodeInput = document.getElementById("roomCodeInput");
-const roomOutput = document.getElementById("roomOutput");
-const roomTitle = document.getElementById("roomTitle");
-const roomBadge = document.getElementById("roomBadge");
-const participantCloud = document.getElementById("participantCloud");
 
 function normalizeBackendUrl(rawValue) {
   const sameOriginDefault = window.location.origin && window.location.origin !== "null"
@@ -138,6 +133,7 @@ function resolveBackendUrl() {
   if (savedBackend) {
     return normalizeBackendUrl(savedBackend);
   }
+
   return normalizeBackendUrl(DEPLOYED_BACKEND_URL);
 }
 
@@ -148,6 +144,10 @@ function setActive(elements, activeValue, attribute) {
 }
 
 function addMessage(author, text, type = "incoming") {
+  if (!chatFeed) {
+    return;
+  }
+
   const wrapper = document.createElement("div");
   wrapper.className = `message ${type}`;
 
@@ -208,6 +208,7 @@ function loadScript(url) {
     script.addEventListener("error", () => {
       reject(new Error(`Failed to load ${url}`));
     }, { once: true });
+
     document.head.appendChild(script);
   });
 }
@@ -241,6 +242,10 @@ async function ensureSocketClient() {
 }
 
 function parseInterests() {
+  if (!interestInput) {
+    return [];
+  }
+
   return interestInput.value
     .split(",")
     .map((entry) => entry.trim())
@@ -253,23 +258,29 @@ function currentMatchOptions() {
     mode: state.mode,
     filter: state.filter,
     interests: parseInterests(),
-    safer: Boolean(safetyToggle.checked),
-    translation: Boolean(translationToggle.checked),
-    adLight: Boolean(adLightToggle.checked),
+    safer: isChecked(safetyToggle, true),
+    translation: isChecked(translationToggle, false),
+    adLight: isChecked(adLightToggle, false),
   };
 }
 
 function updateInterestLabel() {
-  const interests = interestInput.value.trim();
-  interestDisplay.textContent = interests ? `Interests: ${interests}` : "No interests selected";
+  if (!interestDisplay) {
+    return;
+  }
+
+  const interests = interestInput ? interestInput.value.trim() : "";
+  interestDisplay.textContent = interests
+    ? `Interests: ${interests}`
+    : "No interests selected";
 }
 
 function updateSafetyLabel() {
-  safetyDisplay.textContent = safetyToggle.checked ? "Safe mode on" : "Safe mode off";
+  setText(safetyDisplay, isChecked(safetyToggle, true) ? "Safe mode on" : "Safe mode off");
 }
 
 function updateModeBadge() {
-  modeBadge.textContent = state.mode === "video" ? "Video Mode" : "Text Mode";
+  setText(modeBadge, state.mode === "video" ? "Video Mode" : "Text Mode");
 }
 
 function resetPeerConnection() {
@@ -285,15 +296,17 @@ function resetPeerConnection() {
 }
 
 function clearRemoteMedia() {
-  remoteVideo.srcObject = null;
-  remoteOverlay.hidden = false;
+  if (remoteVideo) {
+    remoteVideo.srcObject = null;
+  }
+  setHidden(remoteOverlay, false);
 }
 
 function setDisconnectedUI(reasonText) {
-  queueStatus.textContent = "Idle";
-  matchQuality.textContent = reasonText || "Disconnected";
-  matchHeadline.textContent = "No stranger connected yet";
-  matchDescription.textContent = "Click \"Find stranger\" to start a live random chat.";
+  setText(queueStatus, "Idle");
+  setText(matchQuality, reasonText || "Disconnected");
+  setText(matchHeadline, "No active match");
+  setText(matchDescription, "Press \"Find match\" to start chatting.");
 }
 
 function clearCurrentMatch(reasonText) {
@@ -306,8 +319,8 @@ function clearCurrentMatch(reasonText) {
 
 function applyLocalTrackStates() {
   if (!state.stream) {
-    muteButton.textContent = "Mute";
-    cameraButton.textContent = "Camera Off";
+    setText(muteButton, "Mute");
+    setText(cameraButton, "Camera Off");
     return;
   }
 
@@ -321,8 +334,8 @@ function applyLocalTrackStates() {
     videoTrack.enabled = !state.cameraOff;
   }
 
-  muteButton.textContent = state.localMuted ? "Unmute" : "Mute";
-  cameraButton.textContent = state.cameraOff ? "Camera On" : "Camera Off";
+  setText(muteButton, state.localMuted ? "Unmute" : "Mute");
+  setText(cameraButton, state.cameraOff ? "Camera On" : "Camera Off");
 }
 
 async function ensureLocalStream() {
@@ -336,7 +349,7 @@ async function ensureLocalStream() {
   }
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    localFallback.textContent = "Camera preview needs a browser with media access.";
+    setText(localFallback, "Camera preview needs a browser with media access.");
     return false;
   }
 
@@ -347,16 +360,18 @@ async function ensureLocalStream() {
     });
 
     state.stream = stream;
-    localVideo.srcObject = stream;
-    localFallback.hidden = true;
-    previewButton.textContent = "Camera preview ready";
+    if (localVideo) {
+      localVideo.srcObject = stream;
+    }
+    setHidden(localFallback, true);
+    setText(previewButton, "Camera preview ready");
     applyLocalTrackStates();
-    addMessage("System", "Camera and mic are ready.");
+    addMessage("System", "Camera and microphone are ready.");
     return true;
   } catch (error) {
-    localFallback.hidden = false;
-    localFallback.textContent = "Camera or mic permission was blocked.";
-    addMessage("System", "Camera/mic permission was denied. You can still use text mode.");
+    setHidden(localFallback, false);
+    setText(localFallback, "Camera or microphone access was blocked.");
+    addMessage("System", "Camera/microphone permission was denied. You can still use text mode.");
     return false;
   }
 }
@@ -371,6 +386,7 @@ function createPeerConnection(peerId) {
     if (!event.candidate || !state.socket || !peerId) {
       return;
     }
+
     state.socket.emit("webrtc-ice-candidate", {
       to: peerId,
       candidate: event.candidate,
@@ -379,24 +395,24 @@ function createPeerConnection(peerId) {
 
   connection.ontrack = (event) => {
     const [remoteStream] = event.streams;
-    if (remoteStream) {
+    if (remoteStream && remoteVideo) {
       remoteVideo.srcObject = remoteStream;
-      remoteOverlay.hidden = true;
-      matchDescription.textContent = "Live video connected.";
+      setHidden(remoteOverlay, true);
+      setText(matchDescription, "Live video connected.");
     }
   };
 
   connection.onconnectionstatechange = () => {
     const status = connection.connectionState;
     if (status === "connected") {
-      matchQuality.textContent = "Live connection stable";
+      setText(matchQuality, "Live connection stable");
       return;
     }
 
     if (status === "failed" || status === "disconnected" || status === "closed") {
       clearRemoteMedia();
-      matchDescription.textContent = "Connection interrupted. Click Find stranger to reconnect.";
-      queueStatus.textContent = "Idle";
+      setText(matchDescription, "Connection interrupted. Press Find match to reconnect.");
+      setText(queueStatus, "Idle");
     }
   };
 
@@ -413,26 +429,26 @@ async function handleMatched(payload) {
   state.currentPeerId = payload.peerId;
   state.currentRoomId = payload.roomId;
 
-  queueStatus.textContent = "Connected";
-  matchHeadline.textContent = "Connected with a stranger";
+  setText(queueStatus, "Connected");
+  setText(matchHeadline, "Matched with a stranger");
 
   const partnerInterests = Array.isArray(payload.partnerInterests)
     ? payload.partnerInterests.join(", ")
     : "";
-  matchQuality.textContent = partnerInterests ? `Shared interests: ${partnerInterests}` : "Random match";
+  setText(matchQuality, partnerInterests ? `Shared interests: ${partnerInterests}` : "Random match");
 
-  addMessage("System", "You are now live with a stranger. Be respectful and have fun.");
+  addMessage("System", "You are connected. Keep the conversation respectful.");
 
   if (state.mode === "text") {
     clearRemoteMedia();
-    matchDescription.textContent = "Text-only match connected. Use the chat panel.";
+    setText(matchDescription, "Text-only match connected. Use the message panel.");
     return;
   }
 
   const mediaReady = await ensureLocalStream();
   if (!mediaReady) {
     clearRemoteMedia();
-    matchDescription.textContent = "Video permissions missing. Continue with text chat.";
+    setText(matchDescription, "Video permission missing. Continue with text chat.");
     return;
   }
 
@@ -445,9 +461,9 @@ async function handleMatched(payload) {
       to: payload.peerId,
       sdp: connection.localDescription,
     });
-    matchDescription.textContent = "Connecting video call...";
+    setText(matchDescription, "Connecting video call...");
   } else {
-    matchDescription.textContent = "Waiting for video handshake...";
+    setText(matchDescription, "Completing video handshake...");
   }
 }
 
@@ -458,7 +474,7 @@ async function connectSocketIfNeeded() {
 
   const clientReady = await ensureSocketClient();
   if (!clientReady) {
-    addMessage("System", "Socket client failed to load. Refresh the page and check your network/adblock settings.");
+    addMessage("System", "Unable to load the live connection service. Please refresh.");
     return false;
   }
 
@@ -468,21 +484,21 @@ async function connectSocketIfNeeded() {
   state.socket = socket;
 
   socket.on("connect", () => {
-    queueStatus.textContent = "Online";
-    matchQuality.textContent = "Ready to match";
-    addMessage("System", `Connected to YapTalks live server (${state.backendUrl}).`);
+    setText(queueStatus, "Online");
+    setText(matchQuality, "Ready to match");
+    addMessage("System", "Connected to live server.");
   });
 
   socket.on("disconnect", () => {
     clearCurrentMatch("Server disconnected");
-    addMessage("System", "Disconnected from server. Reconnecting...");
+    addMessage("System", "Connection dropped. Reconnecting automatically...");
   });
 
   socket.on("queued", (payload) => {
-    queueStatus.textContent = "Searching...";
-    matchQuality.textContent = `Queue position ${payload.position}`;
-    matchHeadline.textContent = "Finding your next stranger";
-    matchDescription.textContent = "Looking for a live match right now.";
+    setText(queueStatus, "Searching...");
+    setText(matchQuality, `Queue position ${payload.position}`);
+    setText(matchHeadline, "Finding your next match");
+    setText(matchDescription, "Looking for someone to connect with.");
   });
 
   socket.on("match-found", async (payload) => {
@@ -495,8 +511,8 @@ async function connectSocketIfNeeded() {
   });
 
   socket.on("peer-left", () => {
-    clearCurrentMatch("Stranger left the chat");
-    addMessage("System", "Your stranger left. Click Find stranger for a new match.");
+    clearCurrentMatch("Stranger left");
+    addMessage("System", "The other person left. Press Find match for a new chat.");
   });
 
   socket.on("webrtc-offer", async (payload) => {
@@ -534,7 +550,7 @@ async function connectSocketIfNeeded() {
     try {
       await state.peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
     } catch (error) {
-      addMessage("System", "Network candidate update failed, retrying with next packet.");
+      // Ignore occasional candidate timing issues.
     }
   });
 
@@ -559,7 +575,7 @@ async function requestMatch(useNext = false) {
 
   if (useNext || state.currentRoomId) {
     state.socket.emit("next-match", options);
-    clearCurrentMatch("Looking for next stranger");
+    clearCurrentMatch("Searching for next match");
     return;
   }
 
@@ -571,6 +587,10 @@ async function sendChat() {
     return;
   }
 
+  if (!chatInput) {
+    return;
+  }
+
   const text = chatInput.value.trim();
   if (!text) {
     return;
@@ -578,67 +598,12 @@ async function sendChat() {
 
   const connected = await connectSocketIfNeeded();
   if (!connected || !state.socket || !state.currentRoomId) {
-    addMessage("System", "Start a match first, then send chat messages.");
+    addMessage("System", "Start a match before sending messages.");
     return;
   }
 
   state.socket.emit("chat-message", { text });
   chatInput.value = "";
-}
-
-function updateBilling(mode) {
-  state.billing = mode;
-  setActive(billingPills, mode, "billing");
-  priceElements.forEach((element) => {
-    element.textContent = element.dataset[mode];
-  });
-}
-
-function updateRevenue() {
-  const users = Number(usersRange.value);
-  const conversion = Number(conversionRange.value) / 100;
-  const projectedAds = users * 0.6;
-  const projectedSubs = users * conversion * 90;
-
-  adRevenue.textContent = `$${projectedAds.toLocaleString()}`;
-  subscriptionRevenue.textContent = `$${Math.round(projectedSubs).toLocaleString()}`;
-}
-
-function randomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let value = "";
-  for (let index = 0; index < 6; index += 1) {
-    value += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return value;
-}
-
-function renderParticipants(names) {
-  participantCloud.innerHTML = "";
-  names.forEach((name) => {
-    const pill = document.createElement("span");
-    pill.textContent = name;
-    participantCloud.appendChild(pill);
-  });
-}
-
-function createRoom() {
-  const topic = roomTopicInput.value.trim() || "Yap Squad Lounge";
-  const code = randomCode();
-  roomCodeInput.value = code;
-  roomTitle.textContent = topic;
-  roomBadge.textContent = "Room live";
-  roomOutput.textContent = `Room "${topic}" is ready. Invite friends with code ${code} on YapTalks.`;
-  renderParticipants(participantSets[Math.floor(Math.random() * participantSets.length)]);
-}
-
-function joinRoom() {
-  const code = roomCodeInput.value.trim() || randomCode();
-  const topic = roomTopicInput.value.trim() || `Room ${code}`;
-  roomTitle.textContent = topic;
-  roomBadge.textContent = "Joined";
-  roomOutput.textContent = `You joined ${topic} with invite code ${code}.`;
-  renderParticipants(["You", "Host", "Guest 1", "Guest 2", "Moderator"]);
 }
 
 modePills.forEach((button) => {
@@ -656,69 +621,78 @@ filterPills.forEach((button) => {
   });
 });
 
-billingPills.forEach((button) => {
-  button.addEventListener("click", () => {
-    updateBilling(button.dataset.billing);
+if (previewButton) {
+  previewButton.addEventListener("click", async () => {
+    if (!ensureAuthenticated("enable camera")) {
+      return;
+    }
+    await ensureLocalStream();
   });
-});
+}
 
-previewButton.addEventListener("click", async () => {
-  if (!ensureAuthenticated("enable camera")) {
-    return;
-  }
-  await ensureLocalStream();
-});
+if (findMatchButton) {
+  findMatchButton.addEventListener("click", async () => {
+    await requestMatch(false);
+  });
+}
 
-findMatchButton.addEventListener("click", async () => {
-  await requestMatch(false);
-});
+if (nextMatchButton) {
+  nextMatchButton.addEventListener("click", async () => {
+    await requestMatch(true);
+  });
+}
 
-nextMatchButton.addEventListener("click", async () => {
-  await requestMatch(true);
-});
+if (sendButton) {
+  sendButton.addEventListener("click", async () => {
+    await sendChat();
+  });
+}
 
-sendButton.addEventListener("click", async () => {
-  await sendChat();
-});
+if (muteButton) {
+  muteButton.addEventListener("click", () => {
+    state.localMuted = !state.localMuted;
+    applyLocalTrackStates();
+  });
+}
 
-muteButton.addEventListener("click", () => {
-  state.localMuted = !state.localMuted;
-  applyLocalTrackStates();
-});
+if (cameraButton) {
+  cameraButton.addEventListener("click", () => {
+    state.cameraOff = !state.cameraOff;
+    applyLocalTrackStates();
+  });
+}
 
-cameraButton.addEventListener("click", () => {
-  state.cameraOff = !state.cameraOff;
-  applyLocalTrackStates();
-});
+if (reportButton) {
+  reportButton.addEventListener("click", () => {
+    addMessage("System", "Report submitted. The current match has been skipped.");
+    if (state.socket && state.currentRoomId) {
+      state.socket.emit("next-match", currentMatchOptions());
+      clearCurrentMatch("Reported and skipped");
+    }
+  });
+}
 
-reportButton.addEventListener("click", () => {
-  addMessage("System", "Report submitted. This stranger will be reviewed.");
-  if (state.socket && state.currentRoomId) {
-    state.socket.emit("next-match", currentMatchOptions());
-    clearCurrentMatch("Reported and skipped");
-  }
-});
+if (interestInput) {
+  interestInput.addEventListener("input", updateInterestLabel);
+}
 
-interestInput.addEventListener("input", updateInterestLabel);
-safetyToggle.addEventListener("change", updateSafetyLabel);
-usersRange.addEventListener("input", updateRevenue);
-conversionRange.addEventListener("input", updateRevenue);
-createRoomButton.addEventListener("click", createRoom);
-joinRoomButton.addEventListener("click", joinRoom);
+if (safetyToggle) {
+  safetyToggle.addEventListener("change", updateSafetyLabel);
+}
 
-chatInput.addEventListener("keydown", (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-    void sendChat();
-  }
-});
+if (chatInput) {
+  chatInput.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      void sendChat();
+    }
+  });
+}
 
-updateBilling("monthly");
+state.backendUrl = resolveBackendUrl();
+setDisconnectedUI("Ready");
 updateInterestLabel();
 updateSafetyLabel();
 updateModeBadge();
-updateRevenue();
-state.backendUrl = resolveBackendUrl();
-setDisconnectedUI("Ready");
 applyLocalTrackStates();
 console.info("YapTalks build", FRONTEND_BUILD_ID);
 
@@ -756,13 +730,15 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
         track.stop();
       });
       state.stream = null;
-      localVideo.srcObject = null;
-      localFallback.hidden = false;
-      previewButton.textContent = "Enable camera preview";
     }
 
+    if (localVideo) {
+      localVideo.srcObject = null;
+    }
+    setHidden(localFallback, false);
+    setText(previewButton, "Enable camera preview");
     return;
   }
 
-  addMessage("System", "Logged in successfully. You can start live chat now.");
+  addMessage("System", "Login successful. You can now start matching.");
 });
