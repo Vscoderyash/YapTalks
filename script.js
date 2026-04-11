@@ -13,6 +13,7 @@ const state = {
   socketClientLoadPromise: null,
 };
 
+const FRONTEND_BUILD_ID = "2026-04-11-01";
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
 
 function getSocketClientUrls() {
@@ -692,6 +693,7 @@ updateRevenue();
 state.backendUrl = resolveBackendUrl();
 setDisconnectedUI("Ready");
 applyLocalTrackStates();
+console.info("YapTalks build", FRONTEND_BUILD_ID);
 
 window.addEventListener("beforeunload", () => {
   if (state.socket && state.currentRoomId) {
