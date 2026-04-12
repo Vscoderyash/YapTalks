@@ -1,6 +1,4 @@
 const state = {
-  mode: "video",
-  filter: "all",
   backendUrl: null,
   stream: null,
   socket: null,
@@ -12,10 +10,30 @@ const state = {
   socketClientLoadPromise: null,
   authReady: false,
   isAuthenticated: false,
+  profile: null,
+  currentPrompt: "",
+  reportedCurrentMatch: false,
 };
 
-const FRONTEND_BUILD_ID = "2026-04-11-02";
+const FRONTEND_BUILD_ID = "2026-04-12-01";
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
+const PROFILE_STORAGE_KEY = "yaptalks_profile_v2";
+const XP_PER_LEVEL = 150;
+
+const PROMPT_BATTLES = [
+  "What is your most unpopular food opinion?",
+  "If your life had a theme song, what would it be?",
+  "Describe your week in exactly three words.",
+  "What is one skill everyone should learn before 18?",
+  "What is the most random thing that makes you happy?",
+  "Drop your hottest take in 10 seconds.",
+  "Which city would you move to tomorrow and why?",
+  "Tell one funny truth and one fake thing about you.",
+  "What is better: voice notes or texting?",
+  "If you had one free ticket anywhere, where would you go?",
+  "What habit changed your life the most?",
+  "What is one thing people pretend to like but actually don’t?",
+];
 
 const rtcConfig = {
   iceServers: [
@@ -45,6 +63,19 @@ const queueStatus = byId("queueStatus");
 const matchQuality = byId("matchQuality");
 const matchHeadline = byId("matchHeadline");
 const matchDescription = byId("matchDescription");
+
+const streakValue = byId("streakValue");
+const levelValue = byId("levelValue");
+const xpValue = byId("xpValue");
+const xpBarFill = byId("xpBarFill");
+const challengeStatus = byId("challengeStatus");
+const promptCardText = byId("promptCardText");
+const newPromptButton = byId("newPromptButton");
+const sendPromptButton = byId("sendPromptButton");
+const trustScoreValue = byId("trustScoreValue");
+const reportsValue = byId("reportsValue");
+const matchesValue = byId("matchesValue");
+const safetyGuardButton = byId("safetyGuardButton");
 
 function setText(element, text) {
   if (element) {
@@ -144,6 +175,196 @@ function addMessage(author, text, type = "incoming") {
   chatFeed.scrollTop = chatFeed.scrollHeight;
 }
 
+function getLocalDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDayKey(dayKey) {
+  const parts = String(dayKey).split("-").map((value) => Number(value));
+  if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) {
+    return null;
+  }
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function dayDiff(fromDay, toDay) {
+  const fromDate = parseDayKey(fromDay);
+  const toDate = parseDayKey(toDay);
+  if (!fromDate || !toDate) {
+    return 0;
+  }
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((toDate - fromDate) / msPerDay);
+}
+
+function createDefaultProfile(todayKey) {
+  return {
+    lastActiveDay: todayKey,
+    streakDays: 1,
+    xp: 0,
+    reportsFiled: 0,
+    matchesCompleted: 0,
+    dailyMatchesDay: todayKey,
+    dailyMatches: 0,
+    challengeAnnouncedDay: "",
+    safetyGuard: true,
+  };
+}
+
+function saveProfile() {
+  if (!state.profile) {
+    return;
+  }
+  try {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile));
+  } catch (error) {
+    // Ignore storage write failures in restricted browser modes.
+  }
+}
+
+function loadProfile() {
+  const today = getLocalDayKey();
+  const fallback = createDefaultProfile(today);
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "null");
+  } catch (error) {
+    parsed = null;
+  }
+
+  const profile = {
+    ...fallback,
+    ...(parsed && typeof parsed === "object" ? parsed : {}),
+  };
+
+  profile.streakDays = Number(profile.streakDays) || 1;
+  profile.xp = Number(profile.xp) || 0;
+  profile.reportsFiled = Number(profile.reportsFiled) || 0;
+  profile.matchesCompleted = Number(profile.matchesCompleted) || 0;
+  profile.dailyMatches = Number(profile.dailyMatches) || 0;
+  profile.safetyGuard = profile.safetyGuard !== false;
+
+  const gap = dayDiff(profile.lastActiveDay, today);
+  if (gap === 1) {
+    profile.streakDays += 1;
+  } else if (gap > 1 || gap < 0) {
+    profile.streakDays = 1;
+  }
+  profile.lastActiveDay = today;
+
+  if (profile.dailyMatchesDay !== today) {
+    profile.dailyMatchesDay = today;
+    profile.dailyMatches = 0;
+  }
+
+  state.profile = profile;
+  saveProfile();
+}
+
+function levelFromXp(xp) {
+  return Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+}
+
+function xpProgressPercent(xp) {
+  return Math.floor(((xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100);
+}
+
+function computeTrustScore(profile) {
+  let score = 72;
+  score += Math.min(12, profile.streakDays * 2);
+  score += Math.min(10, Math.floor(profile.matchesCompleted / 4) * 2);
+  score += profile.safetyGuard ? 5 : -5;
+  score += Math.min(4, profile.reportsFiled);
+  return Math.max(50, Math.min(99, score));
+}
+
+function renderProfile() {
+  if (!state.profile) {
+    return;
+  }
+
+  const level = levelFromXp(state.profile.xp);
+  const progress = xpProgressPercent(state.profile.xp);
+  const trustScore = computeTrustScore(state.profile);
+  const streakLabel = `${state.profile.streakDays} ${state.profile.streakDays === 1 ? "day" : "days"}`;
+  const dailyLeft = Math.max(0, 3 - state.profile.dailyMatches);
+
+  setText(streakValue, streakLabel);
+  setText(levelValue, String(level));
+  setText(xpValue, String(state.profile.xp));
+  setText(trustScoreValue, `Trust ${trustScore}`);
+  setText(reportsValue, String(state.profile.reportsFiled));
+  setText(matchesValue, String(state.profile.matchesCompleted));
+  setText(
+    challengeStatus,
+    dailyLeft === 0
+      ? "Daily goal complete. Bonus unlocked."
+      : `Daily goal: ${dailyLeft} more match${dailyLeft === 1 ? "" : "es"} for bonus XP.`,
+  );
+  setText(safetyGuardButton, `Safety Guard: ${state.profile.safetyGuard ? "ON" : "OFF"}`);
+
+  if (xpBarFill) {
+    xpBarFill.style.width = `${progress}%`;
+  }
+}
+
+function awardXp(points, reason = "", announce = false) {
+  if (!state.profile || !Number.isFinite(points) || points <= 0) {
+    return;
+  }
+
+  const oldLevel = levelFromXp(state.profile.xp);
+  state.profile.xp += Math.floor(points);
+  const newLevel = levelFromXp(state.profile.xp);
+
+  saveProfile();
+  renderProfile();
+
+  if (announce && reason) {
+    addMessage("System", `${reason} +${points} XP.`);
+  }
+
+  if (newLevel > oldLevel) {
+    addMessage("System", `Level up! You are now level ${newLevel}.`);
+  }
+}
+
+function maybeCompleteDailyChallenge() {
+  if (!state.profile) {
+    return;
+  }
+
+  const today = getLocalDayKey();
+  if (state.profile.dailyMatches >= 3 && state.profile.challengeAnnouncedDay !== today) {
+    state.profile.challengeAnnouncedDay = today;
+    saveProfile();
+    awardXp(30, "Daily challenge completed", true);
+  }
+}
+
+function randomPrompt(excludeCurrent = true) {
+  if (PROMPT_BATTLES.length === 0) {
+    return "Ask your match about their favorite song.";
+  }
+
+  let candidate = PROMPT_BATTLES[Math.floor(Math.random() * PROMPT_BATTLES.length)];
+  if (excludeCurrent && PROMPT_BATTLES.length > 1) {
+    while (candidate === state.currentPrompt) {
+      candidate = PROMPT_BATTLES[Math.floor(Math.random() * PROMPT_BATTLES.length)];
+    }
+  }
+  return candidate;
+}
+
+function setPrompt(text) {
+  state.currentPrompt = text;
+  setText(promptCardText, text);
+}
+
 function syncAuthState() {
   const authState = window.yapTalksAuth;
   state.authReady = Boolean(authState?.ready);
@@ -167,10 +388,7 @@ function ensureAuthenticated(actionLabel) {
     authUi.open(actionLabel);
   }
 
-  const message = state.authReady
-    ? `Please log in first to ${actionLabel}.`
-    : "Checking account status. Please wait.";
-  addMessage("System", message);
+  addMessage("System", `Please log in first to ${actionLabel}.`);
   return false;
 }
 
@@ -268,6 +486,7 @@ function setDisconnectedUI(reasonText) {
 function clearCurrentMatch(reasonText) {
   state.currentPeerId = null;
   state.currentRoomId = null;
+  state.reportedCurrentMatch = false;
   resetPeerConnection();
   clearRemoteMedia();
   setDisconnectedUI(reasonText);
@@ -323,7 +542,7 @@ async function ensureLocalStream() {
   } catch (error) {
     setHidden(localFallback, false);
     setText(localFallback, "Camera or microphone access was blocked.");
-    addMessage("System", "Camera/microphone permission was denied. You can still use text mode.");
+    addMessage("System", "Camera/microphone permission was denied.");
     return false;
   }
 }
@@ -378,8 +597,23 @@ function createPeerConnection(peerId) {
 }
 
 async function handleMatched(payload) {
+  const isNewRoom = payload.roomId && payload.roomId !== state.currentRoomId;
+
   state.currentPeerId = payload.peerId;
   state.currentRoomId = payload.roomId;
+  state.reportedCurrentMatch = false;
+
+  if (isNewRoom && state.profile) {
+    state.profile.matchesCompleted += 1;
+    if (state.profile.dailyMatchesDay !== getLocalDayKey()) {
+      state.profile.dailyMatchesDay = getLocalDayKey();
+      state.profile.dailyMatches = 0;
+    }
+    state.profile.dailyMatches += 1;
+    saveProfile();
+    awardXp(22, "New match", false);
+    maybeCompleteDailyChallenge();
+  }
 
   setText(queueStatus, "Connected");
   setText(matchHeadline, "Matched with a stranger");
@@ -416,7 +650,7 @@ async function connectSocketIfNeeded() {
 
   const clientReady = await ensureSocketClient();
   if (!clientReady) {
-    addMessage("System", "Unable to load the live connection service. Please refresh.");
+    addMessage("System", "Unable to load live connection service. Please refresh.");
     return false;
   }
 
@@ -455,6 +689,17 @@ async function connectSocketIfNeeded() {
   socket.on("peer-left", () => {
     clearCurrentMatch("Stranger left");
     addMessage("System", "The other person left. Press Find match for a new chat.");
+  });
+
+  socket.on("report-ack", (payload = {}) => {
+    const count = Number(payload.targetReports) || 1;
+    addMessage("System", `Report sent. This account now has ${count} recent safety flags.`);
+  });
+
+  socket.on("safety-warning", () => {
+    if (state.profile?.safetyGuard) {
+      addMessage("System", "Safety Guard notice: your account received a report.");
+    }
   });
 
   socket.on("webrtc-offer", async (payload) => {
@@ -540,6 +785,24 @@ async function sendChat() {
 
   state.socket.emit("chat-message", { text });
   chatInput.value = "";
+  awardXp(3);
+}
+
+async function sendPromptToChat() {
+  if (!ensureAuthenticated("send prompts")) {
+    return;
+  }
+
+  const prompt = state.currentPrompt || randomPrompt(false);
+  if (!state.currentRoomId || !state.socket) {
+    addMessage("System", "Start a match first, then use Prompt Battles.");
+    return;
+  }
+
+  state.socket.emit("chat-message", {
+    text: `Prompt Battle: ${prompt}`,
+  });
+  awardXp(4);
 }
 
 if (previewButton) {
@@ -569,6 +832,30 @@ if (sendButton) {
   });
 }
 
+if (newPromptButton) {
+  newPromptButton.addEventListener("click", () => {
+    setPrompt(randomPrompt(true));
+  });
+}
+
+if (sendPromptButton) {
+  sendPromptButton.addEventListener("click", async () => {
+    await sendPromptToChat();
+  });
+}
+
+if (safetyGuardButton) {
+  safetyGuardButton.addEventListener("click", () => {
+    if (!state.profile) {
+      return;
+    }
+    state.profile.safetyGuard = !state.profile.safetyGuard;
+    saveProfile();
+    renderProfile();
+    addMessage("System", `Safety Guard turned ${state.profile.safetyGuard ? "ON" : "OFF"}.`);
+  });
+}
+
 if (muteButton) {
   muteButton.addEventListener("click", () => {
     state.localMuted = !state.localMuted;
@@ -585,11 +872,29 @@ if (cameraButton) {
 
 if (reportButton) {
   reportButton.addEventListener("click", () => {
-    addMessage("System", "Report submitted. The current match has been skipped.");
-    if (state.socket && state.currentRoomId) {
-      state.socket.emit("next-match", currentMatchOptions());
-      clearCurrentMatch("Reported and skipped");
+    if (!ensureAuthenticated("report users")) {
+      return;
     }
+    if (!state.currentRoomId || !state.socket) {
+      addMessage("System", "No active match to report.");
+      return;
+    }
+    if (state.reportedCurrentMatch) {
+      addMessage("System", "You already reported this match.");
+      return;
+    }
+
+    state.reportedCurrentMatch = true;
+    if (state.profile) {
+      state.profile.reportsFiled += 1;
+      saveProfile();
+      renderProfile();
+    }
+
+    awardXp(6);
+    state.socket.emit("report-user", { reason: "inappropriate" });
+    state.socket.emit("next-match", currentMatchOptions());
+    clearCurrentMatch("Reported and skipped");
   });
 }
 
@@ -602,6 +907,9 @@ if (chatInput) {
 }
 
 state.backendUrl = resolveBackendUrl();
+loadProfile();
+renderProfile();
+setPrompt(randomPrompt(false));
 setDisconnectedUI("Ready");
 applyLocalTrackStates();
 console.info("YapTalks build", FRONTEND_BUILD_ID);
@@ -650,5 +958,5 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
     return;
   }
 
-  addMessage("System", "Login successful. You can now start matching.");
+  addMessage("System", "Login successful. Your Yap profile is active.");
 });

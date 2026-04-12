@@ -303,25 +303,12 @@ h3 {
   margin: 0;
 }
 
-.toggle-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.checkbox-stack,
 .action-stack,
-.mini-stats {
+.mini-stats,
+.hype-grid,
+.prompt-actions {
   display: grid;
   gap: 10px;
-}
-
-.checkbox-stack label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.92rem;
 }
 
 .ghost-button,
@@ -399,6 +386,80 @@ h3 {
   display: block;
   margin-top: 5px;
   font-size: 1rem;
+}
+
+.hype-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.hype-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hype-head strong {
+  font-size: 0.96rem;
+}
+
+.hype-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.hype-grid div {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.hype-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.hype-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.96rem;
+}
+
+.xp-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #dbeafe;
+}
+
+.xp-bar span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #0ea5a0, #0f6ee9);
+  transition: width 0.25s ease;
+}
+
+.hype-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.prompt-card {
+  border: 1px solid #c7dcfb;
+  border-radius: 10px;
+  background: #f4f9ff;
+  padding: 10px;
+  color: #1e3a8a;
+  font-size: 0.88rem;
 }
 
 .stage-topbar,

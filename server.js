@@ -24,6 +24,7 @@ const queues = {
 };
 
 const activeMatches = new Map();
+const reportCounts = new Map();
 
 function queueKey(filter, mode) {
   const normalizedMode = mode === "text" ? "text" : "video";
@@ -168,6 +169,30 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("report-user", (payload = {}) => {
+    const active = activeMatches.get(socket.id);
+    if (!active) {
+      return;
+    }
+
+    const reportedSocketId = active.peerId;
+    const currentCount = reportCounts.get(reportedSocketId) || 0;
+    const updatedCount = currentCount + 1;
+    reportCounts.set(reportedSocketId, updatedCount);
+
+    socket.emit("report-ack", {
+      targetReports: updatedCount,
+      reason: typeof payload.reason === "string" ? payload.reason.slice(0, 60) : "inappropriate",
+    });
+
+    const targetSocket = io.sockets.sockets.get(reportedSocketId);
+    if (targetSocket) {
+      targetSocket.emit("safety-warning", {
+        count: updatedCount,
+      });
+    }
+  });
+
   socket.on("webrtc-offer", (payload = {}) => {
     if (!payload.to || !payload.sdp) {
       return;
@@ -201,6 +226,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     removeFromQueues(socket.id);
     cleanupMatch(socket.id, "disconnect");
+    reportCounts.delete(socket.id);
   });
 });
 
