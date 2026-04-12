@@ -39,7 +39,6 @@ const reportButton = byId("reportButton");
 
 const chatInput = byId("chatInput");
 const chatFeed = byId("chatFeed");
-const interestInput = byId("interestInput");
 const translationToggle = byId("translationToggle");
 const safetyToggle = byId("safetyToggle");
 const adLightToggle = byId("adLightToggle");
@@ -53,7 +52,6 @@ const matchQuality = byId("matchQuality");
 const matchHeadline = byId("matchHeadline");
 const matchDescription = byId("matchDescription");
 const modeBadge = byId("modeBadge");
-const interestDisplay = byId("interestDisplay");
 const safetyDisplay = byId("safetyDisplay");
 
 function setText(element, text) {
@@ -252,38 +250,14 @@ async function ensureSocketClient() {
   return typeof io === "function";
 }
 
-function parseInterests() {
-  if (!interestInput) {
-    return [];
-  }
-
-  return interestInput.value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .slice(0, 8);
-}
-
 function currentMatchOptions() {
   return {
     mode: state.mode,
     filter: state.filter,
-    interests: parseInterests(),
     safer: isChecked(safetyToggle, true),
     translation: isChecked(translationToggle, false),
     adLight: isChecked(adLightToggle, false),
   };
-}
-
-function updateInterestLabel() {
-  if (!interestDisplay) {
-    return;
-  }
-
-  const interests = interestInput ? interestInput.value.trim() : "";
-  interestDisplay.textContent = interests
-    ? `Interests: ${interests}`
-    : "No interests selected";
 }
 
 function updateSafetyLabel() {
@@ -442,11 +416,7 @@ async function handleMatched(payload) {
 
   setText(queueStatus, "Connected");
   setText(matchHeadline, "Matched with a stranger");
-
-  const partnerInterests = Array.isArray(payload.partnerInterests)
-    ? payload.partnerInterests.join(", ")
-    : "";
-  setText(matchQuality, partnerInterests ? `Shared interests: ${partnerInterests}` : "Random match");
+  setText(matchQuality, "Random match");
 
   addMessage("System", "You are connected. Keep the conversation respectful.");
 
@@ -683,10 +653,6 @@ if (reportButton) {
   });
 }
 
-if (interestInput) {
-  interestInput.addEventListener("input", updateInterestLabel);
-}
-
 if (safetyToggle) {
   safetyToggle.addEventListener("change", updateSafetyLabel);
 }
@@ -701,7 +667,6 @@ if (chatInput) {
 
 state.backendUrl = resolveBackendUrl();
 setDisconnectedUI("Ready");
-updateInterestLabel();
 updateSafetyLabel();
 updateModeBadge();
 applyLocalTrackStates();
