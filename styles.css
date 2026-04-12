@@ -118,6 +118,10 @@ h3,
   backdrop-filter: blur(6px);
 }
 
+.auth-modal[hidden] {
+  display: none;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
