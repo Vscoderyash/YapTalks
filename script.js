@@ -26,9 +26,6 @@ const rtcConfig = {
 
 const byId = (id) => document.getElementById(id);
 
-const modePills = document.querySelectorAll("[data-mode]");
-const filterPills = document.querySelectorAll("[data-filter]");
-
 const previewButton = byId("previewButton");
 const findMatchButton = byId("findMatchButton");
 const nextMatchButton = byId("nextMatchButton");
@@ -39,9 +36,6 @@ const reportButton = byId("reportButton");
 
 const chatInput = byId("chatInput");
 const chatFeed = byId("chatFeed");
-const translationToggle = byId("translationToggle");
-const safetyToggle = byId("safetyToggle");
-const adLightToggle = byId("adLightToggle");
 
 const localVideo = byId("localVideo");
 const remoteVideo = byId("remoteVideo");
@@ -51,8 +45,6 @@ const queueStatus = byId("queueStatus");
 const matchQuality = byId("matchQuality");
 const matchHeadline = byId("matchHeadline");
 const matchDescription = byId("matchDescription");
-const modeBadge = byId("modeBadge");
-const safetyDisplay = byId("safetyDisplay");
 
 function setText(element, text) {
   if (element) {
@@ -64,10 +56,6 @@ function setHidden(element, hidden) {
   if (element) {
     element.hidden = hidden;
   }
-}
-
-function isChecked(element, fallback = false) {
-  return element ? Boolean(element.checked) : fallback;
 }
 
 function getSocketClientUrls() {
@@ -133,12 +121,6 @@ function resolveBackendUrl() {
   }
 
   return normalizeBackendUrl(DEPLOYED_BACKEND_URL);
-}
-
-function setActive(elements, activeValue, attribute) {
-  elements.forEach((element) => {
-    element.classList.toggle("active", element.dataset[attribute] === activeValue);
-  });
 }
 
 function addMessage(author, text, type = "incoming") {
@@ -252,20 +234,9 @@ async function ensureSocketClient() {
 
 function currentMatchOptions() {
   return {
-    mode: state.mode,
-    filter: state.filter,
-    safer: isChecked(safetyToggle, true),
-    translation: isChecked(translationToggle, false),
-    adLight: isChecked(adLightToggle, false),
+    mode: "video",
+    filter: "all",
   };
-}
-
-function updateSafetyLabel() {
-  setText(safetyDisplay, isChecked(safetyToggle, true) ? "Safe mode on" : "Safe mode off");
-}
-
-function updateModeBadge() {
-  setText(modeBadge, state.mode === "video" ? "Video Mode" : "Text Mode");
 }
 
 function resetPeerConnection() {
@@ -324,10 +295,6 @@ function applyLocalTrackStates() {
 }
 
 async function ensureLocalStream() {
-  if (state.mode !== "video") {
-    return true;
-  }
-
   if (state.stream) {
     applyLocalTrackStates();
     return true;
@@ -401,7 +368,7 @@ function createPeerConnection(peerId) {
     }
   };
 
-  if (state.mode === "video" && state.stream) {
+  if (state.stream) {
     state.stream.getTracks().forEach((track) => {
       connection.addTrack(track, state.stream);
     });
@@ -419,12 +386,6 @@ async function handleMatched(payload) {
   setText(matchQuality, "Random match");
 
   addMessage("System", "You are connected. Keep the conversation respectful.");
-
-  if (state.mode === "text") {
-    clearRemoteMedia();
-    setText(matchDescription, "Text-only match connected. Use the message panel.");
-    return;
-  }
 
   const mediaReady = await ensureLocalStream();
   if (!mediaReady) {
@@ -497,10 +458,6 @@ async function connectSocketIfNeeded() {
   });
 
   socket.on("webrtc-offer", async (payload) => {
-    if (state.mode !== "video") {
-      return;
-    }
-
     const mediaReady = await ensureLocalStream();
     if (!mediaReady) {
       return;
@@ -548,9 +505,7 @@ async function requestMatch(useNext = false) {
     return;
   }
 
-  if (state.mode === "video") {
-    await ensureLocalStream();
-  }
+  await ensureLocalStream();
 
   const options = currentMatchOptions();
 
@@ -586,21 +541,6 @@ async function sendChat() {
   state.socket.emit("chat-message", { text });
   chatInput.value = "";
 }
-
-modePills.forEach((button) => {
-  button.addEventListener("click", () => {
-    state.mode = button.dataset.mode;
-    setActive(modePills, state.mode, "mode");
-    updateModeBadge();
-  });
-});
-
-filterPills.forEach((button) => {
-  button.addEventListener("click", () => {
-    state.filter = button.dataset.filter;
-    setActive(filterPills, state.filter, "filter");
-  });
-});
 
 if (previewButton) {
   previewButton.addEventListener("click", async () => {
@@ -653,10 +593,6 @@ if (reportButton) {
   });
 }
 
-if (safetyToggle) {
-  safetyToggle.addEventListener("change", updateSafetyLabel);
-}
-
 if (chatInput) {
   chatInput.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
@@ -667,8 +603,6 @@ if (chatInput) {
 
 state.backendUrl = resolveBackendUrl();
 setDisconnectedUI("Ready");
-updateSafetyLabel();
-updateModeBadge();
 applyLocalTrackStates();
 console.info("YapTalks build", FRONTEND_BUILD_ID);
 

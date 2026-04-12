@@ -99,7 +99,7 @@
           <div class="seo-points">
             <span>Random one-to-one video chat</span>
             <span>Live text chat with instant delivery</span>
-            <span>Safer matching controls</span>
+            <span>Instant random matching</span>
           </div>
         </section>
 
@@ -114,19 +114,6 @@
         <div class="app-grid" id="app">
           <aside class="panel control-panel">
             <h3>Match Setup</h3>
-
-            <div class="toggle-grid">
-              <button class="pill active" data-mode="video" type="button">Video</button>
-              <button class="pill" data-mode="text" type="button">Text</button>
-              <button class="pill active" data-filter="all" type="button">Anyone</button>
-              <button class="pill" data-filter="premium" type="button">Premium</button>
-            </div>
-
-            <div class="checkbox-stack">
-              <label><input id="safetyToggle" type="checkbox" checked> Safer matching</label>
-              <label><input id="translationToggle" type="checkbox"> Auto captions</label>
-              <label><input id="adLightToggle" type="checkbox"> Ad-light mode</label>
-            </div>
 
             <div class="action-stack">
               <button class="secondary-button wide" id="previewButton" type="button">Enable camera preview</button>
@@ -152,7 +139,7 @@
                 <span class="stage-label">Live call</span>
                 <h3 id="matchHeadline">No active match</h3>
               </div>
-              <span class="badge" id="modeBadge">Video Mode</span>
+              <span class="badge">Live</span>
             </div>
 
             <div class="video-stack">
@@ -175,9 +162,6 @@
                 <button id="muteButton" type="button">Mute</button>
                 <button id="cameraButton" type="button">Camera Off</button>
                 <button id="reportButton" type="button">Report</button>
-              </div>
-              <div class="live-metrics">
-                <span id="safetyDisplay">Safe mode on</span>
               </div>
             </div>
           </section>
