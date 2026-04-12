@@ -33,6 +33,10 @@ body {
     var(--bg);
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 .page-shell {
   width: min(1240px, calc(100% - 32px));
   margin: 0 auto;
@@ -103,10 +107,15 @@ h3,
   padding: 8px 12px;
 }
 
-.auth-shell {
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
   display: grid;
   place-items: center;
-  padding: 12px 0 24px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(6px);
 }
 
 .panel {
@@ -118,7 +127,25 @@ h3,
 
 .auth-card {
   width: min(520px, 100%);
+  position: relative;
   padding: 26px;
+}
+
+.auth-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font: inherit;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.auth-close:hover {
+  color: var(--ink);
 }
 
 .eyebrow,
@@ -190,6 +217,42 @@ h3,
   color: #7f1d1d;
   border-color: #fecaca;
   background: #fef2f2;
+}
+
+#appContent {
+  display: grid;
+  gap: 16px;
+}
+
+.seo-hero {
+  padding: 20px;
+}
+
+.seo-hero h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.seo-hero p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 880px;
+}
+
+.seo-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.seo-points span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  color: #0f4f87;
 }
 
 .app-header {

@@ -176,6 +176,11 @@ function ensureAuthenticated(actionLabel) {
     return true;
   }
 
+  const authUi = window.yapTalksAuthUI;
+  if (authUi && typeof authUi.open === "function") {
+    authUi.open(actionLabel);
+  }
+
   const message = state.authReady
     ? `Please log in first to ${actionLabel}.`
     : "Checking account status. Please wait.";

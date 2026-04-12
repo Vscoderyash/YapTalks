@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="YapTalks is a secure real-time random video chat and text chat platform created by Yash Raj.">
-  <meta name="keywords" content="YapTalks, random video chat, video call, live text chat, online chat, Yash Raj">
+  <meta name="description" content="YapTalks is a secure random video chat and text chat website for instant online video calling, real-time messaging, and safer matching.">
+  <meta name="keywords" content="YapTalks, random video chat, online video chat, video call website, live text chat, random chat website, video calling platform, Yash Raj">
   <meta name="author" content="Yash Raj">
+  <meta name="application-name" content="YapTalks">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#00b894">
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
   <meta property="og:site_name" content="YapTalks">
-  <meta property="og:title" content="YapTalks | Secure Video Chat and Text Chat">
-  <meta property="og:description" content="Join YapTalks for fast random matching and clean real-time chat.">
+  <meta property="og:title" content="YapTalks | Random Video Chat and Online Video Calling">
+  <meta property="og:description" content="Join YapTalks for secure random video chat, instant online video calling, and real-time text chat.">
   <meta property="og:url" content="https://yaptalks.onrender.com/">
   <meta property="og:image" content="https://yaptalks.onrender.com/og-image.svg">
+  <meta property="og:image:alt" content="YapTalks random video chat platform preview">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="YapTalks | Secure Video Chat and Text Chat">
-  <meta name="twitter:description" content="Random video chat and text chat by YapTalks.">
+  <meta name="twitter:title" content="YapTalks | Random Video Chat and Online Video Calling">
+  <meta name="twitter:description" content="Secure random video chat and real-time text chat on YapTalks.">
   <meta name="twitter:image" content="https://yaptalks.onrender.com/og-image.svg">
   <link rel="canonical" href="https://yaptalks.onrender.com/">
-  <title>YapTalks | Random Video Chat & Text Chat</title>
+  <title>YapTalks | Random Video Chat, Online Video Calling & Text Chat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -30,18 +33,40 @@
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "YapTalks",
-      "url": "https://yaptalks.onrender.com/",
-      "description": "Real-time random video chat and text chat platform by Yash Raj.",
-      "publisher": {
-        "@type": "Organization",
-        "name": "YapTalks",
-        "founder": {
-          "@type": "Person",
-          "name": "Yash Raj"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "YapTalks",
+          "url": "https://yaptalks.onrender.com/",
+          "founder": {
+            "@type": "Person",
+            "name": "Yash Raj"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "name": "YapTalks",
+          "url": "https://yaptalks.onrender.com/",
+          "description": "Random video chat and text chat website with real-time online video calling.",
+          "publisher": {
+            "@type": "Organization",
+            "name": "YapTalks"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://yaptalks.onrender.com/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebApplication",
+          "name": "YapTalks",
+          "url": "https://yaptalks.onrender.com/",
+          "applicationCategory": "CommunicationApplication",
+          "operatingSystem": "Web Browser",
+          "description": "Professional random video chat and live text chat web app."
         }
-      }
+      ]
     }
   </script>
 </head>
@@ -58,42 +83,26 @@
 
       <div class="topbar-actions">
         <span class="status-pill">Live platform</span>
+        <button id="openAuthButton" class="secondary-button" type="button">Log in / Sign up</button>
         <button id="logoutButton" class="ghost-button" type="button" hidden>Log out</button>
       </div>
     </header>
 
     <main>
-      <section class="auth-shell" id="authGate">
-        <div class="auth-card panel">
-          <span class="eyebrow">Secure Login</span>
-          <h1>Welcome to YapTalks</h1>
-          <p>Sign in before entering random video chat and text chat.</p>
-
-          <label class="field">
-            <span>Name (optional)</span>
-            <input id="authName" type="text" placeholder="Your name">
-          </label>
-
-          <label class="field">
-            <span>Email</span>
-            <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
-          </label>
-
-          <label class="field">
-            <span>Password</span>
-            <input id="authPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
-          </label>
-
-          <div class="auth-actions">
-            <button id="loginButton" class="primary-button wide" type="button">Log in</button>
-            <button id="signupButton" class="secondary-button wide" type="button">Create account</button>
+      <section id="appContent">
+        <section class="seo-hero panel">
+          <span class="eyebrow">Random Video Chat Website</span>
+          <h1>YapTalks Random Video Chat and Text Chat</h1>
+          <p>
+            YapTalks is a professional online video calling and random chat platform where people can instantly connect through live video chat or text chat in real time.
+          </p>
+          <div class="seo-points">
+            <span>Random one-to-one video chat</span>
+            <span>Live text chat with instant delivery</span>
+            <span>Safer matching controls</span>
           </div>
+        </section>
 
-          <p id="authMessage" class="auth-message">Sign in to continue.</p>
-        </div>
-      </section>
-
-      <section id="appContent" hidden>
         <div class="app-header">
           <div>
             <span class="eyebrow">Real-time Chat</span>
@@ -212,6 +221,38 @@
       <span>Made by Yash Raj</span>
     </footer>
   </div>
+
+  <section class="auth-modal" id="authGate" hidden>
+    <div class="auth-card panel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="auth-close" id="closeAuthButton" type="button" aria-label="Close login panel">Close</button>
+
+      <span class="eyebrow">Secure Login</span>
+      <h1 id="authTitle">Welcome to YapTalks</h1>
+      <p>Log in or create your account to start matching and chatting.</p>
+
+      <label class="field">
+        <span>Name (optional)</span>
+        <input id="authName" type="text" placeholder="Your name">
+      </label>
+
+      <label class="field">
+        <span>Email</span>
+        <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      </label>
+
+      <label class="field">
+        <span>Password</span>
+        <input id="authPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
+      </label>
+
+      <div class="auth-actions">
+        <button id="loginButton" class="primary-button wide" type="button">Log in</button>
+        <button id="signupButton" class="secondary-button wide" type="button">Create account</button>
+      </div>
+
+      <p id="authMessage" class="auth-message">Sign in to continue.</p>
+    </div>
+  </section>
 
   <script type="module" src="auth.js"></script>
   <script src="script.js"></script>

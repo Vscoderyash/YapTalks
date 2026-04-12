@@ -45,6 +45,8 @@ const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
 const loginButton = document.getElementById("loginButton");
 const signupButton = document.getElementById("signupButton");
+const openAuthButton = document.getElementById("openAuthButton");
+const closeAuthButton = document.getElementById("closeAuthButton");
 const logoutButton = document.getElementById("logoutButton");
 const authMessage = document.getElementById("authMessage");
 
@@ -76,6 +78,33 @@ function setAuthUiLoading(isLoading) {
   signupButton.textContent = isLoading ? "Please wait..." : "Create account";
 }
 
+function setModalVisibility(isOpen) {
+  authGate.hidden = !isOpen;
+  document.body.classList.toggle("modal-open", isOpen);
+
+  if (isOpen) {
+    authEmail.focus();
+  }
+}
+
+function openAuthModal(actionLabel = "start chatting") {
+  if (window.yapTalksAuth?.isAuthenticated) {
+    return;
+  }
+
+  setAuthMessage(`Please log in to ${actionLabel}.`);
+  setModalVisibility(true);
+}
+
+function closeAuthModal() {
+  setModalVisibility(false);
+}
+
+window.yapTalksAuthUI = {
+  open: openAuthModal,
+  close: closeAuthModal,
+};
+
 function validateFields() {
   const email = authEmail.value.trim();
   const password = authPassword.value;
@@ -95,15 +124,17 @@ function validateFields() {
 
 function setUiForUser(user) {
   const loggedIn = Boolean(user);
-  authGate.hidden = loggedIn;
-  appContent.hidden = !loggedIn;
+  appContent.hidden = false;
   logoutButton.hidden = !loggedIn;
+  openAuthButton.hidden = loggedIn;
 
   if (loggedIn) {
     const name = user.displayName || user.email || "Member";
-    setAuthMessage(`Welcome ${name}. Loading your chat experience...`);
+    setAuthMessage(`Welcome ${name}. You are logged in.`);
+    closeAuthModal();
   } else {
-    setAuthMessage("Sign in to unlock real-time chat.");
+    setAuthMessage("Sign in to unlock matching and messaging.");
+    closeAuthModal();
   }
 }
 
@@ -166,6 +197,26 @@ logoutButton.addEventListener("click", async () => {
     await signOut(auth);
   } catch (error) {
     setAuthMessage("Unable to log out right now. Please try again.", true);
+  }
+});
+
+openAuthButton.addEventListener("click", () => {
+  openAuthModal("start chatting");
+});
+
+closeAuthButton.addEventListener("click", () => {
+  closeAuthModal();
+});
+
+authGate.addEventListener("click", (event) => {
+  if (event.target === authGate) {
+    closeAuthModal();
+  }
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !authGate.hidden) {
+    closeAuthModal();
   }
 });
 
