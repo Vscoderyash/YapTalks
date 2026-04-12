@@ -12,673 +12,546 @@ const state = {
   isAuthenticated: false,
   profile: null,
   currentPrompt: "",
-  reportedCurrentMatch: false,
+  partyRoomCode: "",
+  incomingFriendRequest: null,
+  lastStatsSig: "",
 };
 
-const FRONTEND_BUILD_ID = "2026-04-12-01";
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
-const PROFILE_STORAGE_KEY = "yaptalks_profile_v2";
+const PROFILE_STORAGE_KEY = "yaptalks_profile_v3";
 const XP_PER_LEVEL = 150;
-
-const PROMPT_BATTLES = [
-  "What is your most unpopular food opinion?",
-  "If your life had a theme song, what would it be?",
-  "Describe your week in exactly three words.",
-  "What is one skill everyone should learn before 18?",
-  "What is the most random thing that makes you happy?",
+const PROMPTS = [
   "Drop your hottest take in 10 seconds.",
-  "Which city would you move to tomorrow and why?",
-  "Tell one funny truth and one fake thing about you.",
-  "What is better: voice notes or texting?",
-  "If you had one free ticket anywhere, where would you go?",
+  "Tell one funny truth and one fake thing.",
   "What habit changed your life the most?",
-  "What is one thing people pretend to like but actually don’t?",
+  "What is your most unpopular food opinion?",
+  "Describe your week in 3 words.",
 ];
 
-const rtcConfig = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-  ],
+const byId = (id) => document.getElementById(id);
+const els = {
+  preview: byId("previewButton"),
+  find: byId("findMatchButton"),
+  next: byId("nextMatchButton"),
+  send: byId("sendButton"),
+  mute: byId("muteButton"),
+  camera: byId("cameraButton"),
+  report: byId("reportButton"),
+  chatInput: byId("chatInput"),
+  chatFeed: byId("chatFeed"),
+  localVideo: byId("localVideo"),
+  remoteVideo: byId("remoteVideo"),
+  remoteOverlay: byId("remoteOverlay"),
+  localFallback: byId("localFallback"),
+  queueStatus: byId("queueStatus"),
+  matchQuality: byId("matchQuality"),
+  matchHeadline: byId("matchHeadline"),
+  matchDescription: byId("matchDescription"),
+  streak: byId("streakValue"),
+  level: byId("levelValue"),
+  xp: byId("xpValue"),
+  xpBar: byId("xpBarFill"),
+  challenge: byId("challengeStatus"),
+  promptText: byId("promptCardText"),
+  newPrompt: byId("newPromptButton"),
+  sendPrompt: byId("sendPromptButton"),
+  trust: byId("trustScoreValue"),
+  reports: byId("reportsValue"),
+  matches: byId("matchesValue"),
+  guard: byId("safetyGuardButton"),
+  partyStatus: byId("partyStatus"),
+  partyCreate: byId("partyCreateButton"),
+  partyCode: byId("partyCodeInput"),
+  partyJoin: byId("partyJoinButton"),
+  partyLeave: byId("partyLeaveButton"),
+  partyRoomLabel: byId("partyRoomLabel"),
+  partyMembers: byId("partyMembers"),
+  partyInput: byId("partyChatInput"),
+  partySend: byId("partySendButton"),
+  addFriend: byId("addFriendButton"),
+  acceptFriend: byId("acceptFriendButton"),
+  friendsCount: byId("friendsCount"),
+  friendsList: byId("friendsList"),
+  refreshBoard: byId("refreshLeaderboardButton"),
+  boardList: byId("leaderboardList"),
 };
 
-const byId = (id) => document.getElementById(id);
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-const previewButton = byId("previewButton");
-const findMatchButton = byId("findMatchButton");
-const nextMatchButton = byId("nextMatchButton");
-const sendButton = byId("sendButton");
-const muteButton = byId("muteButton");
-const cameraButton = byId("cameraButton");
-const reportButton = byId("reportButton");
-
-const chatInput = byId("chatInput");
-const chatFeed = byId("chatFeed");
-
-const localVideo = byId("localVideo");
-const remoteVideo = byId("remoteVideo");
-const remoteOverlay = byId("remoteOverlay");
-const localFallback = byId("localFallback");
-const queueStatus = byId("queueStatus");
-const matchQuality = byId("matchQuality");
-const matchHeadline = byId("matchHeadline");
-const matchDescription = byId("matchDescription");
-
-const streakValue = byId("streakValue");
-const levelValue = byId("levelValue");
-const xpValue = byId("xpValue");
-const xpBarFill = byId("xpBarFill");
-const challengeStatus = byId("challengeStatus");
-const promptCardText = byId("promptCardText");
-const newPromptButton = byId("newPromptButton");
-const sendPromptButton = byId("sendPromptButton");
-const trustScoreValue = byId("trustScoreValue");
-const reportsValue = byId("reportsValue");
-const matchesValue = byId("matchesValue");
-const safetyGuardButton = byId("safetyGuardButton");
-
-function setText(element, text) {
-  if (element) {
-    element.textContent = text;
-  }
+function setText(el, text) {
+  if (el) el.textContent = text;
+}
+function setHidden(el, hidden) {
+  if (el) el.hidden = hidden;
+}
+function addMessage(author, text, type = "incoming") {
+  if (!els.chatFeed) return;
+  const wrap = document.createElement("div");
+  wrap.className = `message ${type}`;
+  const a = document.createElement("span");
+  a.className = "author";
+  a.textContent = author;
+  const p = document.createElement("p");
+  p.textContent = text;
+  wrap.appendChild(a);
+  wrap.appendChild(p);
+  els.chatFeed.appendChild(wrap);
+  els.chatFeed.scrollTop = els.chatFeed.scrollHeight;
 }
 
-function setHidden(element, hidden) {
-  if (element) {
-    element.hidden = hidden;
-  }
+function getIdentity() {
+  const auth = window.yapTalksAuth || {};
+  const name = auth.displayName || (auth.email ? auth.email.split("@")[0] : "Yap User");
+  const uid = auth.uid || `guest-${name.toLowerCase().replace(/\s+/g, "-")}`;
+  return { uid, name, email: auth.email || "" };
 }
 
-function getSocketClientUrls() {
-  const backendBase = normalizeBackendUrl(state.backendUrl || DEPLOYED_BACKEND_URL);
-  return [
-    `${backendBase}/socket.io/socket.io.js`,
-    "/socket.io/socket.io.js",
-    "https://cdn.socket.io/4.8.1/socket.io.min.js",
-    "https://unpkg.com/socket.io-client@4.8.1/dist/socket.io.min.js",
-  ];
+function syncAuthState() {
+  const auth = window.yapTalksAuth;
+  state.authReady = Boolean(auth?.ready);
+  state.isAuthenticated = Boolean(auth?.isAuthenticated);
 }
 
-function normalizeBackendUrl(rawValue) {
-  const sameOriginDefault = window.location.origin && window.location.origin !== "null"
-    ? window.location.origin
-    : "http://localhost:3000";
-
-  if (!rawValue || typeof rawValue !== "string") {
-    return sameOriginDefault;
+function ensureAuthenticated(actionLabel) {
+  syncAuthState();
+  if (!state.authReady) {
+    addMessage("System", "Checking your saved login session...");
+    return false;
   }
+  if (state.isAuthenticated) return true;
+  if (window.yapTalksAuthUI?.open) window.yapTalksAuthUI.open(actionLabel);
+  addMessage("System", `Please log in first to ${actionLabel}.`);
+  return false;
+}
 
-  let value = rawValue.trim();
-  if (!value) {
-    return sameOriginDefault;
-  }
-
-  if (value === "same-origin") {
-    return sameOriginDefault;
-  }
-
-  if (value.startsWith("//")) {
-    value = `${window.location.protocol}${value}`;
-  } else if (!value.startsWith("http://") && !value.startsWith("https://")) {
-    value = `https://${value}`;
-  }
-
+function normalizeBackendUrl(raw) {
+  if (!raw) return window.location.origin || "http://localhost:3000";
+  const value = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
   try {
     const parsed = new URL(value);
     return `${parsed.protocol}//${parsed.host}`;
   } catch (error) {
-    return sameOriginDefault;
+    return window.location.origin || "http://localhost:3000";
   }
 }
 
 function resolveBackendUrl() {
   const params = new URLSearchParams(window.location.search);
-  const queryBackend = params.get("backend");
-  const resetBackend = params.get("reset_backend");
-  const savedBackend = localStorage.getItem("yaptalks_backend_url");
-
-  if (resetBackend === "1") {
-    localStorage.removeItem("yaptalks_backend_url");
-  }
-
-  if (queryBackend) {
-    const normalized = normalizeBackendUrl(queryBackend);
+  const query = params.get("backend");
+  const reset = params.get("reset_backend");
+  const saved = localStorage.getItem("yaptalks_backend_url");
+  if (reset === "1") localStorage.removeItem("yaptalks_backend_url");
+  if (query) {
+    const normalized = normalizeBackendUrl(query);
     localStorage.setItem("yaptalks_backend_url", normalized);
     return normalized;
   }
+  return normalizeBackendUrl(saved || DEPLOYED_BACKEND_URL);
+}
 
-  if (savedBackend) {
-    return normalizeBackendUrl(savedBackend);
+function getSocketClientUrls() {
+  const base = normalizeBackendUrl(state.backendUrl || DEPLOYED_BACKEND_URL);
+  return [
+    `${base}/socket.io/socket.io.js`,
+    "/socket.io/socket.io.js",
+    "https://cdn.socket.io/4.8.1/socket.io.min.js",
+  ];
+}
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = url;
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureSocketClient() {
+  if (typeof io === "function") return true;
+  if (state.socketClientLoadPromise) {
+    await state.socketClientLoadPromise;
+    return typeof io === "function";
   }
-
-  return normalizeBackendUrl(DEPLOYED_BACKEND_URL);
+  state.socketClientLoadPromise = (async () => {
+    for (const url of getSocketClientUrls()) {
+      try {
+        await loadScript(url);
+        if (typeof io === "function") return;
+      } catch (error) {
+        // Try next source.
+      }
+    }
+  })();
+  await state.socketClientLoadPromise;
+  state.socketClientLoadPromise = null;
+  return typeof io === "function";
 }
 
-function addMessage(author, text, type = "incoming") {
-  if (!chatFeed) {
-    return;
-  }
-
-  const wrapper = document.createElement("div");
-  wrapper.className = `message ${type}`;
-
-  const authorEl = document.createElement("span");
-  authorEl.className = "author";
-  authorEl.textContent = author;
-
-  const bodyEl = document.createElement("p");
-  bodyEl.textContent = text;
-
-  wrapper.appendChild(authorEl);
-  wrapper.appendChild(bodyEl);
-  chatFeed.appendChild(wrapper);
-  chatFeed.scrollTop = chatFeed.scrollHeight;
-}
-
-function getLocalDayKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function parseDayKey(dayKey) {
-  const parts = String(dayKey).split("-").map((value) => Number(value));
-  if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) {
-    return null;
-  }
-  return new Date(parts[0], parts[1] - 1, parts[2]);
-}
-
-function dayDiff(fromDay, toDay) {
-  const fromDate = parseDayKey(fromDay);
-  const toDate = parseDayKey(toDay);
-  if (!fromDate || !toDate) {
-    return 0;
-  }
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.round((toDate - fromDate) / msPerDay);
-}
-
-function createDefaultProfile(todayKey) {
+function createDefaultProfile(today) {
   return {
-    lastActiveDay: todayKey,
+    lastActiveDay: today,
     streakDays: 1,
     xp: 0,
     reportsFiled: 0,
     matchesCompleted: 0,
-    dailyMatchesDay: todayKey,
+    dailyMatchesDay: today,
     dailyMatches: 0,
     challengeAnnouncedDay: "",
     safetyGuard: true,
+    friends: [],
   };
 }
 
+function getLocalDayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function dayDiff(a, b) {
+  const pa = new Date(`${a}T00:00:00`);
+  const pb = new Date(`${b}T00:00:00`);
+  return Math.round((pb - pa) / (24 * 60 * 60 * 1000));
+}
+
 function saveProfile() {
-  if (!state.profile) {
-    return;
-  }
+  if (!state.profile) return;
   try {
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile));
   } catch (error) {
-    // Ignore storage write failures in restricted browser modes.
+    // Ignore.
   }
 }
 
 function loadProfile() {
   const today = getLocalDayKey();
   const fallback = createDefaultProfile(today);
-
   let parsed = null;
   try {
     parsed = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "null");
   } catch (error) {
     parsed = null;
   }
-
-  const profile = {
-    ...fallback,
-    ...(parsed && typeof parsed === "object" ? parsed : {}),
-  };
-
-  profile.streakDays = Number(profile.streakDays) || 1;
-  profile.xp = Number(profile.xp) || 0;
-  profile.reportsFiled = Number(profile.reportsFiled) || 0;
-  profile.matchesCompleted = Number(profile.matchesCompleted) || 0;
-  profile.dailyMatches = Number(profile.dailyMatches) || 0;
-  profile.safetyGuard = profile.safetyGuard !== false;
-
-  const gap = dayDiff(profile.lastActiveDay, today);
-  if (gap === 1) {
-    profile.streakDays += 1;
-  } else if (gap > 1 || gap < 0) {
-    profile.streakDays = 1;
-  }
+  const profile = { ...fallback, ...(parsed && typeof parsed === "object" ? parsed : {}) };
+  profile.friends = Array.isArray(profile.friends) ? profile.friends.filter((f) => f && f.uid) : [];
+  const gap = dayDiff(profile.lastActiveDay || today, today);
+  profile.streakDays = gap === 1 ? Number(profile.streakDays || 1) + 1 : gap > 1 ? 1 : Number(profile.streakDays || 1);
   profile.lastActiveDay = today;
-
   if (profile.dailyMatchesDay !== today) {
     profile.dailyMatchesDay = today;
     profile.dailyMatches = 0;
   }
-
   state.profile = profile;
   saveProfile();
 }
 
 function levelFromXp(xp) {
-  return Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+  return Math.max(1, Math.floor((Number(xp) || 0) / XP_PER_LEVEL) + 1);
 }
 
-function xpProgressPercent(xp) {
-  return Math.floor(((xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100);
-}
-
-function computeTrustScore(profile) {
-  let score = 72;
-  score += Math.min(12, profile.streakDays * 2);
-  score += Math.min(10, Math.floor(profile.matchesCompleted / 4) * 2);
+function trustScore(profile) {
+  let score = 72 + Math.min(12, profile.streakDays * 2) + Math.min(10, Math.floor(profile.matchesCompleted / 4) * 2);
   score += profile.safetyGuard ? 5 : -5;
   score += Math.min(4, profile.reportsFiled);
   return Math.max(50, Math.min(99, score));
 }
 
-function renderProfile() {
-  if (!state.profile) {
-    return;
-  }
-
-  const level = levelFromXp(state.profile.xp);
-  const progress = xpProgressPercent(state.profile.xp);
-  const trustScore = computeTrustScore(state.profile);
-  const streakLabel = `${state.profile.streakDays} ${state.profile.streakDays === 1 ? "day" : "days"}`;
-  const dailyLeft = Math.max(0, 3 - state.profile.dailyMatches);
-
-  setText(streakValue, streakLabel);
-  setText(levelValue, String(level));
-  setText(xpValue, String(state.profile.xp));
-  setText(trustScoreValue, `Trust ${trustScore}`);
-  setText(reportsValue, String(state.profile.reportsFiled));
-  setText(matchesValue, String(state.profile.matchesCompleted));
-  setText(
-    challengeStatus,
-    dailyLeft === 0
-      ? "Daily goal complete. Bonus unlocked."
-      : `Daily goal: ${dailyLeft} more match${dailyLeft === 1 ? "" : "es"} for bonus XP.`,
-  );
-  setText(safetyGuardButton, `Safety Guard: ${state.profile.safetyGuard ? "ON" : "OFF"}`);
-
-  if (xpBarFill) {
-    xpBarFill.style.width = `${progress}%`;
-  }
+function maybePushProfileStats(force = false) {
+  if (!state.socket || !state.isAuthenticated || !state.profile) return;
+  const identity = getIdentity();
+  const payload = {
+    userId: identity.uid,
+    name: identity.name,
+    xp: Number(state.profile.xp) || 0,
+    streak: Number(state.profile.streakDays) || 1,
+    matches: Number(state.profile.matchesCompleted) || 0,
+    reports: Number(state.profile.reportsFiled) || 0,
+    safetyGuard: Boolean(state.profile.safetyGuard),
+  };
+  const sig = [payload.userId, payload.xp, payload.streak, payload.matches, payload.reports, payload.safetyGuard ? 1 : 0].join("|");
+  if (!force && sig === state.lastStatsSig) return;
+  state.lastStatsSig = sig;
+  state.socket.emit("profile-stats", payload);
 }
 
-function awardXp(points, reason = "", announce = false) {
-  if (!state.profile || !Number.isFinite(points) || points <= 0) {
+function renderFriends() {
+  if (!state.profile || !els.friendsList) return;
+  const friends = state.profile.friends || [];
+  setText(els.friendsCount, `${friends.length} friend${friends.length === 1 ? "" : "s"}`);
+  els.friendsList.innerHTML = "";
+  if (friends.length === 0) {
+    const item = document.createElement("span");
+    item.textContent = "No friends yet.";
+    els.friendsList.appendChild(item);
     return;
   }
+  friends.slice().reverse().slice(0, 6).forEach((friend) => {
+    const item = document.createElement("span");
+    item.textContent = `${friend.name || friend.uid} · friend`;
+    els.friendsList.appendChild(item);
+  });
+}
 
+function renderProfile() {
+  if (!state.profile) return;
+  const level = levelFromXp(state.profile.xp);
+  const progress = Math.floor(((Number(state.profile.xp) || 0) % XP_PER_LEVEL) / XP_PER_LEVEL * 100);
+  setText(els.streak, `${state.profile.streakDays} ${state.profile.streakDays === 1 ? "day" : "days"}`);
+  setText(els.level, String(level));
+  setText(els.xp, String(state.profile.xp || 0));
+  setText(els.trust, `Trust ${trustScore(state.profile)}`);
+  setText(els.reports, String(state.profile.reportsFiled || 0));
+  setText(els.matches, String(state.profile.matchesCompleted || 0));
+  const left = Math.max(0, 3 - (state.profile.dailyMatches || 0));
+  setText(els.challenge, left === 0 ? "Daily goal complete. Bonus unlocked." : `Daily goal: ${left} more matches for bonus XP.`);
+  setText(els.guard, `Safety Guard: ${state.profile.safetyGuard ? "ON" : "OFF"}`);
+  if (els.xpBar) els.xpBar.style.width = `${progress}%`;
+  renderFriends();
+  maybePushProfileStats();
+}
+
+function awardXp(points, message) {
+  if (!state.profile || !Number.isFinite(points) || points <= 0) return;
   const oldLevel = levelFromXp(state.profile.xp);
-  state.profile.xp += Math.floor(points);
-  const newLevel = levelFromXp(state.profile.xp);
-
+  state.profile.xp = (Number(state.profile.xp) || 0) + Math.floor(points);
   saveProfile();
   renderProfile();
-
-  if (announce && reason) {
-    addMessage("System", `${reason} +${points} XP.`);
-  }
-
-  if (newLevel > oldLevel) {
-    addMessage("System", `Level up! You are now level ${newLevel}.`);
-  }
+  if (message) addMessage("System", `${message} +${points} XP.`);
+  if (levelFromXp(state.profile.xp) > oldLevel) addMessage("System", `Level up! You are now level ${levelFromXp(state.profile.xp)}.`);
 }
 
-function maybeCompleteDailyChallenge() {
-  if (!state.profile) {
-    return;
-  }
-
-  const today = getLocalDayKey();
-  if (state.profile.dailyMatches >= 3 && state.profile.challengeAnnouncedDay !== today) {
-    state.profile.challengeAnnouncedDay = today;
-    saveProfile();
-    awardXp(30, "Daily challenge completed", true);
-  }
-}
-
-function randomPrompt(excludeCurrent = true) {
-  if (PROMPT_BATTLES.length === 0) {
-    return "Ask your match about their favorite song.";
-  }
-
-  let candidate = PROMPT_BATTLES[Math.floor(Math.random() * PROMPT_BATTLES.length)];
-  if (excludeCurrent && PROMPT_BATTLES.length > 1) {
-    while (candidate === state.currentPrompt) {
-      candidate = PROMPT_BATTLES[Math.floor(Math.random() * PROMPT_BATTLES.length)];
-    }
-  }
-  return candidate;
+function addFriend(user) {
+  if (!state.profile || !user || !user.uid) return;
+  if (state.profile.friends.some((f) => f.uid === user.uid)) return;
+  state.profile.friends.push({ uid: user.uid, name: user.name || "Friend", addedAt: Date.now() });
+  saveProfile();
+  renderProfile();
+  awardXp(15, "Mutual add completed");
 }
 
 function setPrompt(text) {
   state.currentPrompt = text;
-  setText(promptCardText, text);
+  setText(els.promptText, text);
 }
 
-function syncAuthState() {
-  const authState = window.yapTalksAuth;
-  state.authReady = Boolean(authState?.ready);
-  state.isAuthenticated = Boolean(authState?.isAuthenticated);
+function nextPrompt() {
+  let prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  if (PROMPTS.length > 1) while (prompt === state.currentPrompt) prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  setPrompt(prompt);
 }
 
-function ensureAuthenticated(actionLabel) {
-  syncAuthState();
-
-  if (!state.authReady) {
-    addMessage("System", "Checking your saved login session...");
-    return false;
+function renderLeaderboard(items) {
+  if (!els.boardList) return;
+  els.boardList.innerHTML = "";
+  if (!Array.isArray(items) || items.length === 0) {
+    const row = document.createElement("span");
+    row.textContent = "Leaderboard is warming up.";
+    els.boardList.appendChild(row);
+    return;
   }
-
-  if (state.isAuthenticated) {
-    return true;
-  }
-
-  const authUi = window.yapTalksAuthUI;
-  if (authUi && typeof authUi.open === "function") {
-    authUi.open(actionLabel);
-  }
-
-  addMessage("System", `Please log in first to ${actionLabel}.`);
-  return false;
-}
-
-function loadScript(url) {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[data-src="${url}"]`);
-    if (existing) {
-      if (existing.dataset.loaded === "true") {
-        resolve();
-        return;
-      }
-
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error(`Failed to load ${url}`)), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = url;
-    script.async = true;
-    script.dataset.src = url;
-    script.addEventListener("load", () => {
-      script.dataset.loaded = "true";
-      resolve();
-    }, { once: true });
-    script.addEventListener("error", () => {
-      reject(new Error(`Failed to load ${url}`));
-    }, { once: true });
-
-    document.head.appendChild(script);
+  items.slice(0, 6).forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "leaderboard-item";
+    const name = document.createElement("span");
+    name.textContent = `#${index + 1} ${item.name || "Yap User"}`;
+    const score = document.createElement("strong");
+    score.textContent = `${item.xp || 0} XP`;
+    row.appendChild(name);
+    row.appendChild(score);
+    els.boardList.appendChild(row);
   });
 }
 
-async function ensureSocketClient() {
-  if (typeof io === "function") {
-    return true;
+function renderPartyState() {
+  const inRoom = Boolean(state.partyRoomCode);
+  setText(els.partyStatus, inRoom ? "In room" : "No room");
+  setText(els.partyRoomLabel, inRoom ? `Room code: ${state.partyRoomCode}` : "No active room.");
+  if (!els.partyMembers) return;
+  els.partyMembers.innerHTML = "";
+  const members = Array.isArray(state.partyMembers) ? state.partyMembers : [];
+  if (members.length === 0) {
+    const row = document.createElement("span");
+    row.textContent = "No members in room yet.";
+    els.partyMembers.appendChild(row);
+    return;
   }
-
-  if (state.socketClientLoadPromise) {
-    await state.socketClientLoadPromise;
-    return typeof io === "function";
-  }
-
-  state.socketClientLoadPromise = (async () => {
-    for (const url of getSocketClientUrls()) {
-      try {
-        await loadScript(url);
-        if (typeof io === "function") {
-          return;
-        }
-      } catch (error) {
-        // Try the next fallback source.
-      }
-    }
-  })();
-
-  await state.socketClientLoadPromise;
-  state.socketClientLoadPromise = null;
-  return typeof io === "function";
+  members.forEach((member) => {
+    const row = document.createElement("span");
+    row.textContent = member.name || "Yap User";
+    els.partyMembers.appendChild(row);
+  });
 }
 
 function currentMatchOptions() {
-  return {
-    mode: "video",
-    filter: "all",
-  };
+  return { mode: "video", filter: "all" };
 }
 
-function resetPeerConnection() {
-  if (!state.peerConnection) {
-    return;
-  }
-
+function resetPeer() {
+  if (!state.peerConnection) return;
   state.peerConnection.ontrack = null;
   state.peerConnection.onicecandidate = null;
-  state.peerConnection.onconnectionstatechange = null;
   state.peerConnection.close();
   state.peerConnection = null;
 }
 
 function clearRemoteMedia() {
-  if (remoteVideo) {
-    remoteVideo.srcObject = null;
-  }
-  setHidden(remoteOverlay, false);
+  if (els.remoteVideo) els.remoteVideo.srcObject = null;
+  setHidden(els.remoteOverlay, false);
 }
 
-function setDisconnectedUI(reasonText) {
-  setText(queueStatus, "Idle");
-  setText(matchQuality, reasonText || "Disconnected");
-  setText(matchHeadline, "No active match");
-  setText(matchDescription, "Press \"Find match\" to start chatting.");
+function setDisconnectedUI(reason) {
+  setText(els.queueStatus, "Idle");
+  setText(els.matchQuality, reason || "Disconnected");
+  setText(els.matchHeadline, "No active match");
+  setText(els.matchDescription, "Press \"Find match\" to start chatting.");
 }
 
-function clearCurrentMatch(reasonText) {
+function clearMatch(reason) {
   state.currentPeerId = null;
   state.currentRoomId = null;
-  state.reportedCurrentMatch = false;
-  resetPeerConnection();
+  state.incomingFriendRequest = null;
+  setHidden(els.acceptFriend, true);
+  resetPeer();
   clearRemoteMedia();
-  setDisconnectedUI(reasonText);
+  setDisconnectedUI(reason);
 }
 
-function applyLocalTrackStates() {
+function applyTracks() {
   if (!state.stream) {
-    setText(muteButton, "Mute");
-    setText(cameraButton, "Camera Off");
+    setText(els.mute, "Mute");
+    setText(els.camera, "Camera Off");
     return;
   }
-
-  const audioTrack = state.stream.getAudioTracks()[0];
-  const videoTrack = state.stream.getVideoTracks()[0];
-
-  if (audioTrack) {
-    audioTrack.enabled = !state.localMuted;
-  }
-  if (videoTrack) {
-    videoTrack.enabled = !state.cameraOff;
-  }
-
-  setText(muteButton, state.localMuted ? "Unmute" : "Mute");
-  setText(cameraButton, state.cameraOff ? "Camera On" : "Camera Off");
+  const a = state.stream.getAudioTracks()[0];
+  const v = state.stream.getVideoTracks()[0];
+  if (a) a.enabled = !state.localMuted;
+  if (v) v.enabled = !state.cameraOff;
+  setText(els.mute, state.localMuted ? "Unmute" : "Mute");
+  setText(els.camera, state.cameraOff ? "Camera On" : "Camera Off");
 }
 
 async function ensureLocalStream() {
   if (state.stream) {
-    applyLocalTrackStates();
+    applyTracks();
     return true;
   }
-
   if (!navigator.mediaDevices?.getUserMedia) {
-    setText(localFallback, "Camera preview needs a browser with media access.");
+    setText(els.localFallback, "Camera preview needs a browser with media access.");
     return false;
   }
-
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: { facingMode: "user" },
-    });
-
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
     state.stream = stream;
-    if (localVideo) {
-      localVideo.srcObject = stream;
-    }
-    setHidden(localFallback, true);
-    setText(previewButton, "Camera preview ready");
-    applyLocalTrackStates();
+    if (els.localVideo) els.localVideo.srcObject = stream;
+    setHidden(els.localFallback, true);
+    setText(els.preview, "Camera preview ready");
+    applyTracks();
     addMessage("System", "Camera and microphone are ready.");
     return true;
   } catch (error) {
-    setHidden(localFallback, false);
-    setText(localFallback, "Camera or microphone access was blocked.");
+    setHidden(els.localFallback, false);
+    setText(els.localFallback, "Camera or microphone access was blocked.");
     addMessage("System", "Camera/microphone permission was denied.");
     return false;
   }
 }
 
 function createPeerConnection(peerId) {
-  resetPeerConnection();
+  resetPeer();
+  const pc = new RTCPeerConnection(rtcConfig);
+  state.peerConnection = pc;
 
-  const connection = new RTCPeerConnection(rtcConfig);
-  state.peerConnection = connection;
-
-  connection.onicecandidate = (event) => {
-    if (!event.candidate || !state.socket || !peerId) {
-      return;
-    }
-
-    state.socket.emit("webrtc-ice-candidate", {
-      to: peerId,
-      candidate: event.candidate,
-    });
+  pc.onicecandidate = (event) => {
+    if (!event.candidate || !state.socket || !peerId) return;
+    state.socket.emit("webrtc-ice-candidate", { to: peerId, candidate: event.candidate });
   };
 
-  connection.ontrack = (event) => {
+  pc.ontrack = (event) => {
     const [remoteStream] = event.streams;
-    if (remoteStream && remoteVideo) {
-      remoteVideo.srcObject = remoteStream;
-      setHidden(remoteOverlay, true);
-      setText(matchDescription, "Live video connected.");
+    if (remoteStream && els.remoteVideo) {
+      els.remoteVideo.srcObject = remoteStream;
+      setHidden(els.remoteOverlay, true);
+      setText(els.matchDescription, "Live video connected.");
     }
   };
 
-  connection.onconnectionstatechange = () => {
-    const status = connection.connectionState;
-    if (status === "connected") {
-      setText(matchQuality, "Live connection stable");
-      return;
-    }
-
-    if (status === "failed" || status === "disconnected" || status === "closed") {
-      clearRemoteMedia();
-      setText(matchDescription, "Connection interrupted. Press Find match to reconnect.");
-      setText(queueStatus, "Idle");
-    }
-  };
-
-  if (state.stream) {
-    state.stream.getTracks().forEach((track) => {
-      connection.addTrack(track, state.stream);
-    });
-  }
-
-  return connection;
-}
-
-async function handleMatched(payload) {
-  const isNewRoom = payload.roomId && payload.roomId !== state.currentRoomId;
-
-  state.currentPeerId = payload.peerId;
-  state.currentRoomId = payload.roomId;
-  state.reportedCurrentMatch = false;
-
-  if (isNewRoom && state.profile) {
-    state.profile.matchesCompleted += 1;
-    if (state.profile.dailyMatchesDay !== getLocalDayKey()) {
-      state.profile.dailyMatchesDay = getLocalDayKey();
-      state.profile.dailyMatches = 0;
-    }
-    state.profile.dailyMatches += 1;
-    saveProfile();
-    awardXp(22, "New match", false);
-    maybeCompleteDailyChallenge();
-  }
-
-  setText(queueStatus, "Connected");
-  setText(matchHeadline, "Matched with a stranger");
-  setText(matchQuality, "Random match");
-
-  addMessage("System", "You are connected. Keep the conversation respectful.");
-
-  const mediaReady = await ensureLocalStream();
-  if (!mediaReady) {
-    clearRemoteMedia();
-    setText(matchDescription, "Video permission missing. Continue with text chat.");
-    return;
-  }
-
-  const connection = createPeerConnection(payload.peerId);
-
-  if (payload.initiator) {
-    const offer = await connection.createOffer();
-    await connection.setLocalDescription(offer);
-    state.socket.emit("webrtc-offer", {
-      to: payload.peerId,
-      sdp: connection.localDescription,
-    });
-    setText(matchDescription, "Connecting video call...");
-  } else {
-    setText(matchDescription, "Completing video handshake...");
-  }
+  if (state.stream) state.stream.getTracks().forEach((track) => pc.addTrack(track, state.stream));
+  return pc;
 }
 
 async function connectSocketIfNeeded() {
-  if (state.socket) {
-    return true;
-  }
-
-  const clientReady = await ensureSocketClient();
-  if (!clientReady) {
+  if (state.socket) return true;
+  const ready = await ensureSocketClient();
+  if (!ready) {
     addMessage("System", "Unable to load live connection service. Please refresh.");
     return false;
   }
 
+  const me = getIdentity();
   const socket = io(state.backendUrl, {
     transports: ["websocket", "polling"],
+    auth: { uid: me.uid, name: me.name, email: me.email },
   });
   state.socket = socket;
 
   socket.on("connect", () => {
-    setText(queueStatus, "Online");
-    setText(matchQuality, "Ready to match");
+    setText(els.queueStatus, "Online");
+    setText(els.matchQuality, "Ready to match");
     addMessage("System", "Connected to live server.");
+    maybePushProfileStats(true);
+    socket.emit("leaderboard-get");
   });
 
   socket.on("disconnect", () => {
-    clearCurrentMatch("Server disconnected");
+    clearMatch("Server disconnected");
+    state.partyRoomCode = "";
+    state.partyMembers = [];
+    renderPartyState();
     addMessage("System", "Connection dropped. Reconnecting automatically...");
   });
 
   socket.on("queued", (payload) => {
-    setText(queueStatus, "Searching...");
-    setText(matchQuality, `Queue position ${payload.position}`);
-    setText(matchHeadline, "Finding your next match");
-    setText(matchDescription, "Looking for someone to connect with.");
+    setText(els.queueStatus, "Searching...");
+    setText(els.matchQuality, `Queue position ${payload.position}`);
+    setText(els.matchHeadline, "Finding your next match");
+    setText(els.matchDescription, "Looking for someone to connect with.");
   });
 
   socket.on("match-found", async (payload) => {
-    await handleMatched(payload);
+    const isNewRoom = payload.roomId && payload.roomId !== state.currentRoomId;
+    state.currentPeerId = payload.peerId;
+    state.currentRoomId = payload.roomId;
+    state.incomingFriendRequest = null;
+    setHidden(els.acceptFriend, true);
+    if (isNewRoom && state.profile) {
+      state.profile.matchesCompleted = (state.profile.matchesCompleted || 0) + 1;
+      state.profile.dailyMatches = (state.profile.dailyMatches || 0) + 1;
+      saveProfile();
+      renderProfile();
+      awardXp(22);
+      if (state.profile.dailyMatches >= 3 && state.profile.challengeAnnouncedDay !== getLocalDayKey()) {
+        state.profile.challengeAnnouncedDay = getLocalDayKey();
+        saveProfile();
+        awardXp(30, "Daily challenge completed");
+      }
+    }
+    setText(els.queueStatus, "Connected");
+    setText(els.matchHeadline, "Matched with a stranger");
+    setText(els.matchQuality, "Random match");
+    addMessage("System", "You are connected. Keep the conversation respectful.");
+    const mediaReady = await ensureLocalStream();
+    if (!mediaReady) return;
+    const pc = createPeerConnection(payload.peerId);
+    if (payload.initiator) {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit("webrtc-offer", { to: payload.peerId, sdp: pc.localDescription });
+      setText(els.matchDescription, "Connecting video call...");
+    } else {
+      setText(els.matchDescription, "Completing video handshake...");
+    }
   });
 
   socket.on("chat-message", (payload) => {
@@ -687,53 +560,73 @@ async function connectSocketIfNeeded() {
   });
 
   socket.on("peer-left", () => {
-    clearCurrentMatch("Stranger left");
+    clearMatch("Stranger left");
     addMessage("System", "The other person left. Press Find match for a new chat.");
   });
 
   socket.on("report-ack", (payload = {}) => {
-    const count = Number(payload.targetReports) || 1;
-    addMessage("System", `Report sent. This account now has ${count} recent safety flags.`);
+    addMessage("System", `Report sent. Target has ${Number(payload.targetReports) || 1} recent safety flags.`);
   });
 
   socket.on("safety-warning", () => {
-    if (state.profile?.safetyGuard) {
-      addMessage("System", "Safety Guard notice: your account received a report.");
-    }
+    if (state.profile?.safetyGuard) addMessage("System", "Safety Guard notice: your account received a report.");
+  });
+
+  socket.on("friend-request", (payload = {}) => {
+    state.incomingFriendRequest = payload;
+    setText(els.acceptFriend, `Accept request from ${payload.fromUser?.name || "User"}`);
+    setHidden(els.acceptFriend, false);
+    addMessage("System", `${payload.fromUser?.name || "Someone"} sent you a friend request.`);
+  });
+
+  socket.on("friend-accepted", (payload = {}) => {
+    addFriend(payload.fromUser || {});
+    addMessage("System", `${payload.fromUser?.name || "Friend"} accepted your request.`);
+  });
+
+  socket.on("party-state", (payload = {}) => {
+    state.partyRoomCode = payload.code || "";
+    state.partyMembers = Array.isArray(payload.members) ? payload.members : [];
+    renderPartyState();
+  });
+
+  socket.on("party-message", (payload = {}) => {
+    addMessage(`Party · ${payload.fromName || "Member"}`, payload.text || "");
+  });
+
+  socket.on("party-error", (payload = {}) => {
+    addMessage("System", payload.message || "Party action failed.");
+  });
+
+  socket.on("leaderboard-data", (payload = {}) => {
+    renderLeaderboard(payload.items || []);
+  });
+
+  socket.on("leaderboard-update", (payload = {}) => {
+    renderLeaderboard(payload.items || []);
   });
 
   socket.on("webrtc-offer", async (payload) => {
     const mediaReady = await ensureLocalStream();
-    if (!mediaReady) {
-      return;
-    }
-
-    const connection = createPeerConnection(payload.from);
-    await connection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-    const answer = await connection.createAnswer();
-    await connection.setLocalDescription(answer);
-    socket.emit("webrtc-answer", {
-      to: payload.from,
-      sdp: connection.localDescription,
-    });
+    if (!mediaReady) return;
+    const pc = createPeerConnection(payload.from);
+    await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit("webrtc-answer", { to: payload.from, sdp: pc.localDescription });
   });
 
   socket.on("webrtc-answer", async (payload) => {
-    if (!state.peerConnection) {
-      return;
-    }
+    if (!state.peerConnection) return;
     await state.peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
   });
 
   socket.on("webrtc-ice-candidate", async (payload) => {
-    if (!state.peerConnection) {
-      return;
-    }
-
+    if (!state.peerConnection) return;
     try {
       await state.peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
     } catch (error) {
-      // Ignore occasional candidate timing issues.
+      // Ignore candidate timing issues.
     }
   });
 
@@ -741,222 +634,191 @@ async function connectSocketIfNeeded() {
 }
 
 async function requestMatch(useNext = false) {
-  if (!ensureAuthenticated("start chat")) {
-    return;
-  }
-
+  if (!ensureAuthenticated("start chat")) return;
   const connected = await connectSocketIfNeeded();
-  if (!connected || !state.socket) {
-    return;
-  }
-
+  if (!connected || !state.socket) return;
   await ensureLocalStream();
-
-  const options = currentMatchOptions();
-
   if (useNext || state.currentRoomId) {
-    state.socket.emit("next-match", options);
-    clearCurrentMatch("Searching for next match");
+    state.socket.emit("next-match", currentMatchOptions());
+    clearMatch("Searching for next match");
     return;
   }
-
-  state.socket.emit("request-match", options);
+  state.socket.emit("request-match", currentMatchOptions());
 }
 
 async function sendChat() {
-  if (!ensureAuthenticated("send messages")) {
-    return;
-  }
-
-  if (!chatInput) {
-    return;
-  }
-
-  const text = chatInput.value.trim();
-  if (!text) {
-    return;
-  }
-
+  if (!ensureAuthenticated("send messages")) return;
+  const text = String(els.chatInput?.value || "").trim();
+  if (!text) return;
   const connected = await connectSocketIfNeeded();
   if (!connected || !state.socket || !state.currentRoomId) {
     addMessage("System", "Start a match before sending messages.");
     return;
   }
-
   state.socket.emit("chat-message", { text });
-  chatInput.value = "";
+  els.chatInput.value = "";
   awardXp(3);
 }
 
 async function sendPromptToChat() {
-  if (!ensureAuthenticated("send prompts")) {
-    return;
-  }
-
-  const prompt = state.currentPrompt || randomPrompt(false);
+  if (!ensureAuthenticated("send prompts")) return;
   if (!state.currentRoomId || !state.socket) {
     addMessage("System", "Start a match first, then use Prompt Battles.");
     return;
   }
-
-  state.socket.emit("chat-message", {
-    text: `Prompt Battle: ${prompt}`,
-  });
+  state.socket.emit("chat-message", { text: `Prompt Battle: ${state.currentPrompt}` });
   awardXp(4);
 }
 
-if (previewButton) {
-  previewButton.addEventListener("click", async () => {
-    if (!ensureAuthenticated("enable camera")) {
-      return;
-    }
-    await ensureLocalStream();
-  });
+async function sendFriendRequest() {
+  if (!ensureAuthenticated("add friends")) return;
+  const connected = await connectSocketIfNeeded();
+  if (!connected || !state.socket || !state.currentPeerId) {
+    addMessage("System", "You can send requests only during an active match.");
+    return;
+  }
+  const me = getIdentity();
+  state.socket.emit("friend-request", { to: state.currentPeerId, fromUser: { uid: me.uid, name: me.name } });
+  addMessage("System", "Friend request sent.");
 }
 
-if (findMatchButton) {
-  findMatchButton.addEventListener("click", async () => {
-    await requestMatch(false);
-  });
+async function acceptFriendRequest() {
+  if (!ensureAuthenticated("accept friend requests")) return;
+  if (!state.incomingFriendRequest || !state.socket) return;
+  const req = state.incomingFriendRequest;
+  addFriend(req.fromUser || {});
+  const me = getIdentity();
+  state.socket.emit("friend-accepted", { to: req.fromSocketId, fromUser: { uid: me.uid, name: me.name } });
+  addMessage("System", `You are now friends with ${req.fromUser?.name || "user"}.`);
+  state.incomingFriendRequest = null;
+  setHidden(els.acceptFriend, true);
 }
 
-if (nextMatchButton) {
-  nextMatchButton.addEventListener("click", async () => {
-    await requestMatch(true);
-  });
+async function createPartyRoom() {
+  if (!ensureAuthenticated("create party rooms")) return;
+  const connected = await connectSocketIfNeeded();
+  if (!connected || !state.socket) return;
+  state.socket.emit("party-create");
 }
 
-if (sendButton) {
-  sendButton.addEventListener("click", async () => {
-    await sendChat();
-  });
+async function joinPartyRoom() {
+  if (!ensureAuthenticated("join party rooms")) return;
+  const connected = await connectSocketIfNeeded();
+  if (!connected || !state.socket) return;
+  const code = String(els.partyCode?.value || "").trim().toUpperCase();
+  if (!code) {
+    addMessage("System", "Enter a room code to join.");
+    return;
+  }
+  state.socket.emit("party-join", { code });
 }
 
-if (newPromptButton) {
-  newPromptButton.addEventListener("click", () => {
-    setPrompt(randomPrompt(true));
-  });
+function leavePartyRoom() {
+  if (state.socket && state.partyRoomCode) {
+    state.socket.emit("party-leave");
+  }
+  state.partyRoomCode = "";
+  state.partyMembers = [];
+  renderPartyState();
 }
 
-if (sendPromptButton) {
-  sendPromptButton.addEventListener("click", async () => {
-    await sendPromptToChat();
-  });
+function sendPartyMessage() {
+  if (!state.socket || !state.partyRoomCode) {
+    addMessage("System", "Join or create a party room first.");
+    return;
+  }
+  const text = String(els.partyInput?.value || "").trim();
+  if (!text) return;
+  state.socket.emit("party-message", { text });
+  els.partyInput.value = "";
+  awardXp(2);
 }
 
-if (safetyGuardButton) {
-  safetyGuardButton.addEventListener("click", () => {
-    if (!state.profile) {
-      return;
-    }
-    state.profile.safetyGuard = !state.profile.safetyGuard;
-    saveProfile();
-    renderProfile();
-    addMessage("System", `Safety Guard turned ${state.profile.safetyGuard ? "ON" : "OFF"}.`);
-  });
-}
-
-if (muteButton) {
-  muteButton.addEventListener("click", () => {
-    state.localMuted = !state.localMuted;
-    applyLocalTrackStates();
-  });
-}
-
-if (cameraButton) {
-  cameraButton.addEventListener("click", () => {
-    state.cameraOff = !state.cameraOff;
-    applyLocalTrackStates();
-  });
-}
-
-if (reportButton) {
-  reportButton.addEventListener("click", () => {
-    if (!ensureAuthenticated("report users")) {
-      return;
-    }
-    if (!state.currentRoomId || !state.socket) {
-      addMessage("System", "No active match to report.");
-      return;
-    }
-    if (state.reportedCurrentMatch) {
-      addMessage("System", "You already reported this match.");
-      return;
-    }
-
-    state.reportedCurrentMatch = true;
-    if (state.profile) {
-      state.profile.reportsFiled += 1;
-      saveProfile();
-      renderProfile();
-    }
-
-    awardXp(6);
-    state.socket.emit("report-user", { reason: "inappropriate" });
-    state.socket.emit("next-match", currentMatchOptions());
-    clearCurrentMatch("Reported and skipped");
-  });
-}
-
-if (chatInput) {
-  chatInput.addEventListener("keydown", (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-      void sendChat();
-    }
-  });
-}
+if (els.preview) els.preview.addEventListener("click", async () => {
+  if (!ensureAuthenticated("enable camera")) return;
+  await ensureLocalStream();
+});
+if (els.find) els.find.addEventListener("click", async () => { await requestMatch(false); });
+if (els.next) els.next.addEventListener("click", async () => { await requestMatch(true); });
+if (els.send) els.send.addEventListener("click", async () => { await sendChat(); });
+if (els.newPrompt) els.newPrompt.addEventListener("click", nextPrompt);
+if (els.sendPrompt) els.sendPrompt.addEventListener("click", async () => { await sendPromptToChat(); });
+if (els.addFriend) els.addFriend.addEventListener("click", async () => { await sendFriendRequest(); });
+if (els.acceptFriend) els.acceptFriend.addEventListener("click", async () => { await acceptFriendRequest(); });
+if (els.partyCreate) els.partyCreate.addEventListener("click", async () => { await createPartyRoom(); });
+if (els.partyJoin) els.partyJoin.addEventListener("click", async () => { await joinPartyRoom(); });
+if (els.partyLeave) els.partyLeave.addEventListener("click", leavePartyRoom);
+if (els.partySend) els.partySend.addEventListener("click", sendPartyMessage);
+if (els.refreshBoard) els.refreshBoard.addEventListener("click", async () => {
+  const connected = await connectSocketIfNeeded();
+  if (connected && state.socket) state.socket.emit("leaderboard-get");
+});
+if (els.mute) els.mute.addEventListener("click", () => { state.localMuted = !state.localMuted; applyTracks(); });
+if (els.camera) els.camera.addEventListener("click", () => { state.cameraOff = !state.cameraOff; applyTracks(); });
+if (els.guard) els.guard.addEventListener("click", () => {
+  if (!state.profile) return;
+  state.profile.safetyGuard = !state.profile.safetyGuard;
+  saveProfile();
+  renderProfile();
+  addMessage("System", `Safety Guard turned ${state.profile.safetyGuard ? "ON" : "OFF"}.`);
+});
+if (els.report) els.report.addEventListener("click", () => {
+  if (!ensureAuthenticated("report users")) return;
+  if (!state.currentRoomId || !state.socket) return addMessage("System", "No active match to report.");
+  state.profile.reportsFiled = (state.profile.reportsFiled || 0) + 1;
+  saveProfile();
+  renderProfile();
+  awardXp(6);
+  state.socket.emit("report-user", { reason: "inappropriate" });
+  state.socket.emit("next-match", currentMatchOptions());
+  clearMatch("Reported and skipped");
+});
+if (els.chatInput) els.chatInput.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") void sendChat();
+});
+if (els.partyInput) els.partyInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendPartyMessage();
+  }
+});
 
 state.backendUrl = resolveBackendUrl();
 loadProfile();
 renderProfile();
-setPrompt(randomPrompt(false));
+nextPrompt();
+renderLeaderboard([]);
+renderPartyState();
 setDisconnectedUI("Ready");
-applyLocalTrackStates();
-console.info("YapTalks build", FRONTEND_BUILD_ID);
+applyTracks();
+console.info("YapTalks build", "2026-04-12-v2");
 
 window.addEventListener("beforeunload", () => {
-  if (state.socket && state.currentRoomId) {
-    state.socket.emit("leave-match", { reason: "tab-close" });
-  }
-
-  if (state.socket) {
-    state.socket.disconnect();
-  }
-
-  if (state.stream) {
-    state.stream.getTracks().forEach((track) => {
-      track.stop();
-    });
-  }
+  if (state.socket && state.currentRoomId) state.socket.emit("leave-match", { reason: "tab-close" });
+  if (state.socket && state.partyRoomCode) state.socket.emit("party-leave");
+  if (state.socket) state.socket.disconnect();
+  if (state.stream) state.stream.getTracks().forEach((track) => track.stop());
 });
 
 window.addEventListener("yaptalks-auth-changed", (event) => {
   const detail = event.detail || {};
   state.authReady = true;
   state.isAuthenticated = Boolean(detail.isAuthenticated);
-
   if (!state.isAuthenticated) {
-    clearCurrentMatch("Logged out");
-
+    clearMatch("Logged out");
+    leavePartyRoom();
     if (state.socket) {
       state.socket.disconnect();
       state.socket = null;
     }
-
     if (state.stream) {
-      state.stream.getTracks().forEach((track) => {
-        track.stop();
-      });
+      state.stream.getTracks().forEach((track) => track.stop());
       state.stream = null;
     }
-
-    if (localVideo) {
-      localVideo.srcObject = null;
-    }
-    setHidden(localFallback, false);
-    setText(previewButton, "Enable camera preview");
+    if (els.localVideo) els.localVideo.srcObject = null;
+    setHidden(els.localFallback, false);
+    setText(els.preview, "Enable camera preview");
     return;
   }
-
-  addMessage("System", "Login successful. Your Yap profile is active.");
+  addMessage("System", "Login successful. Hype profile v2 is active.");
 });
