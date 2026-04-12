@@ -172,6 +172,12 @@ function syncAuthState() {
 
 function ensureAuthenticated(actionLabel) {
   syncAuthState();
+
+  if (!state.authReady) {
+    addMessage("System", "Checking your saved login session...");
+    return false;
+  }
+
   if (state.isAuthenticated) {
     return true;
   }

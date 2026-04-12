@@ -34,7 +34,7 @@ isSupported()
   });
 
 const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence).catch(() => {
+const persistenceReady = setPersistence(auth, browserLocalPersistence).catch(() => {
   // Keep default in-memory persistence if blocked by browser settings.
 });
 
@@ -163,6 +163,7 @@ loginButton.addEventListener("click", async () => {
 
   setAuthUiLoading(true);
   try {
+    await persistenceReady;
     await signInWithEmailAndPassword(auth, fields.email, fields.password);
     setAuthMessage("Login successful.");
   } catch (error) {
@@ -180,6 +181,7 @@ signupButton.addEventListener("click", async () => {
 
   setAuthUiLoading(true);
   try {
+    await persistenceReady;
     const credential = await createUserWithEmailAndPassword(auth, fields.email, fields.password);
     if (fields.name) {
       await updateProfile(credential.user, { displayName: fields.name });
