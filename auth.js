@@ -43,12 +43,22 @@ const appContent = document.getElementById("appContent");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
+const policyConsent = document.getElementById("policyConsent");
 const loginButton = document.getElementById("loginButton");
 const signupButton = document.getElementById("signupButton");
 const openAuthButton = document.getElementById("openAuthButton");
 const closeAuthButton = document.getElementById("closeAuthButton");
 const logoutButton = document.getElementById("logoutButton");
 const authMessage = document.getElementById("authMessage");
+const POLICY_ACCEPTED_STORAGE_KEY = "yaptalks_policy_accepted_v1";
+
+if (policyConsent) {
+  try {
+    policyConsent.checked = localStorage.getItem(POLICY_ACCEPTED_STORAGE_KEY) === "1";
+  } catch (error) {
+    // Ignore localStorage restrictions.
+  }
+}
 
 function emitAuthState(user) {
   window.yapTalksAuth = {
@@ -100,6 +110,15 @@ function closeAuthModal() {
   setModalVisibility(false);
 }
 
+function rememberPolicyAcceptance() {
+  if (!policyConsent?.checked) return;
+  try {
+    localStorage.setItem(POLICY_ACCEPTED_STORAGE_KEY, "1");
+  } catch (error) {
+    // Ignore localStorage restrictions.
+  }
+}
+
 window.yapTalksAuthUI = {
   open: openAuthModal,
   close: closeAuthModal,
@@ -116,6 +135,11 @@ function validateFields() {
 
   if (password.length < 6) {
     setAuthMessage("Password must be at least 6 characters.", true);
+    return null;
+  }
+
+  if (policyConsent && !policyConsent.checked) {
+    setAuthMessage("Please accept the Privacy Policy to continue.", true);
     return null;
   }
 
@@ -165,6 +189,7 @@ loginButton.addEventListener("click", async () => {
   try {
     await persistenceReady;
     await signInWithEmailAndPassword(auth, fields.email, fields.password);
+    rememberPolicyAcceptance();
     setAuthMessage("Login successful.");
   } catch (error) {
     setAuthMessage(friendlyAuthError(error), true);
@@ -186,6 +211,7 @@ signupButton.addEventListener("click", async () => {
     if (fields.name) {
       await updateProfile(credential.user, { displayName: fields.name });
     }
+    rememberPolicyAcceptance();
     setAuthMessage("Account created successfully.");
   } catch (error) {
     setAuthMessage(friendlyAuthError(error), true);
