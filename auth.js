@@ -51,6 +51,7 @@ const closeAuthButton = document.getElementById("closeAuthButton");
 const logoutButton = document.getElementById("logoutButton");
 const authMessage = document.getElementById("authMessage");
 const POLICY_ACCEPTED_STORAGE_KEY = "yaptalks_policy_accepted_v1";
+let authUiLoading = false;
 
 if (policyConsent) {
   try {
@@ -82,10 +83,16 @@ function setAuthMessage(message, isError = false) {
 }
 
 function setAuthUiLoading(isLoading) {
-  loginButton.disabled = isLoading;
-  signupButton.disabled = isLoading;
+  authUiLoading = isLoading;
+  updateAuthActionState();
   loginButton.textContent = isLoading ? "Please wait..." : "Log in";
   signupButton.textContent = isLoading ? "Please wait..." : "Create account";
+}
+
+function updateAuthActionState() {
+  const consentAccepted = Boolean(policyConsent?.checked);
+  loginButton.disabled = authUiLoading || !consentAccepted;
+  signupButton.disabled = authUiLoading;
 }
 
 function setModalVisibility(isOpen) {
@@ -123,6 +130,12 @@ window.yapTalksAuthUI = {
   open: openAuthModal,
   close: closeAuthModal,
 };
+
+if (policyConsent) {
+  policyConsent.addEventListener("change", () => {
+    updateAuthActionState();
+  });
+}
 
 function validateFields() {
   const email = authEmail.value.trim();
@@ -252,3 +265,5 @@ onAuthStateChanged(auth, (user) => {
   setUiForUser(user);
   emitAuthState(user);
 });
+
+updateAuthActionState();

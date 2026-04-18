@@ -402,6 +402,15 @@ h3 {
   transform: translateY(-1px);
 }
 
+.ghost-button:disabled,
+.secondary-button:disabled,
+.primary-button:disabled,
+.call-tools button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .wide {
   width: 100%;
 }
