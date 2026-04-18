@@ -135,18 +135,63 @@ function normalizeBackendUrl(raw) {
   }
 }
 
+function isVercelHost(hostname) {
+  return /\.vercel\.app$/i.test(String(hostname || ""));
+}
+
 function resolveBackendUrl() {
   const params = new URLSearchParams(window.location.search);
   const query = params.get("backend");
   const reset = params.get("reset_backend");
-  const saved = localStorage.getItem("yaptalks_backend_url");
-  if (reset === "1") localStorage.removeItem("yaptalks_backend_url");
+  const fallback = normalizeBackendUrl(DEPLOYED_BACKEND_URL);
+  const currentOrigin = normalizeBackendUrl(window.location.origin);
+  let saved = "";
+
+  try {
+    saved = localStorage.getItem("yaptalks_backend_url") || "";
+  } catch (error) {
+    saved = "";
+  }
+
+  if (reset === "1") {
+    try {
+      localStorage.removeItem("yaptalks_backend_url");
+    } catch (error) {
+      // Ignore storage restrictions.
+    }
+    saved = "";
+  }
+
   if (query) {
     const normalized = normalizeBackendUrl(query);
-    localStorage.setItem("yaptalks_backend_url", normalized);
+    try {
+      localStorage.setItem("yaptalks_backend_url", normalized);
+    } catch (error) {
+      // Ignore storage restrictions.
+    }
     return normalized;
   }
-  return normalizeBackendUrl(saved || DEPLOYED_BACKEND_URL);
+
+  const savedNormalized = saved ? normalizeBackendUrl(saved) : "";
+
+  // Vercel static hosting does not run this Socket.IO backend.
+  // When opened on vercel.app, default to Render unless explicitly overridden.
+  if (isVercelHost(window.location.hostname)) {
+    const shouldUseFallback =
+      !savedNormalized ||
+      savedNormalized === currentOrigin ||
+      savedNormalized.includes(".vercel.app");
+    if (shouldUseFallback) {
+      try {
+        localStorage.setItem("yaptalks_backend_url", fallback);
+      } catch (error) {
+        // Ignore storage restrictions.
+      }
+      return fallback;
+    }
+  }
+
+  return savedNormalized || fallback;
 }
 
 function getSocketClientUrls() {
