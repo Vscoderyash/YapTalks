@@ -497,7 +497,7 @@ async function ensureLocalStream() {
     state.stream = stream;
     if (els.localVideo) els.localVideo.srcObject = stream;
     setLocalFallback("", false);
-    setText(els.preview, "Camera preview ready");
+    setText(els.preview, "Camera ready");
     applyTracks();
     addMessage("System", "Camera and microphone are ready.");
     return true;
@@ -876,7 +876,7 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
     }
     if (els.localVideo) els.localVideo.srcObject = null;
     setLocalFallback("", false);
-    setText(els.preview, "Enable camera preview");
+    setText(els.preview, "Enable camera");
     return;
   }
   addMessage("System", "Login successful. Hype profile v2 is active.");
