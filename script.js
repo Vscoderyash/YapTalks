@@ -39,6 +39,7 @@ const els = {
   report: byId("reportButton"),
   chatInput: byId("chatInput"),
   chatFeed: byId("chatFeed"),
+  localStage: byId("localStage"),
   localVideo: byId("localVideo"),
   remoteVideo: byId("remoteVideo"),
   remoteOverlay: byId("remoteOverlay"),
@@ -88,6 +89,9 @@ function setLocalFallback(message = "", shouldShow = false) {
   if (!els.localFallback) return;
   els.localFallback.textContent = message;
   setHidden(els.localFallback, !shouldShow);
+}
+function setLocalStageVisible(shouldShow) {
+  setHidden(els.localStage, !shouldShow);
 }
 function addMessage(author, text, type = "incoming") {
   if (!els.chatFeed) return;
@@ -485,10 +489,12 @@ function applyTracks() {
 async function ensureLocalStream() {
   if (state.stream) {
     applyTracks();
+    setLocalStageVisible(true);
     setLocalFallback("", false);
     return true;
   }
   if (!navigator.mediaDevices?.getUserMedia) {
+    setLocalStageVisible(true);
     setLocalFallback("Camera preview needs a browser with media access.", true);
     return false;
   }
@@ -496,12 +502,14 @@ async function ensureLocalStream() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
     state.stream = stream;
     if (els.localVideo) els.localVideo.srcObject = stream;
+    setLocalStageVisible(true);
     setLocalFallback("", false);
     setText(els.preview, "Camera ready");
     applyTracks();
     addMessage("System", "Camera and microphone are ready.");
     return true;
   } catch (error) {
+    setLocalStageVisible(true);
     setLocalFallback("Camera or microphone access was blocked.", true);
     addMessage("System", "Camera/microphone permission was denied.");
     return false;
@@ -834,9 +842,11 @@ if (els.partyInput) els.partyInput.addEventListener("keydown", (event) => {
 });
 if (els.localVideo) {
   els.localVideo.addEventListener("loadeddata", () => {
+    setLocalStageVisible(true);
     setLocalFallback("", false);
   });
   els.localVideo.addEventListener("playing", () => {
+    setLocalStageVisible(true);
     setLocalFallback("", false);
   });
 }
@@ -848,6 +858,7 @@ nextPrompt();
 renderLeaderboard([]);
 renderPartyState();
 setDisconnectedUI("Ready");
+setLocalStageVisible(false);
 setLocalFallback("", false);
 applyTracks();
 console.info("YapTalks build", "2026-04-12-v2");
@@ -875,6 +886,7 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
       state.stream = null;
     }
     if (els.localVideo) els.localVideo.srcObject = null;
+    setLocalStageVisible(false);
     setLocalFallback("", false);
     setText(els.preview, "Enable camera");
     return;

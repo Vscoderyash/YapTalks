@@ -612,13 +612,15 @@ h3 {
 .local-stage {
   position: absolute;
   right: 16px;
-  bottom: 16px;
-  width: 128px;
-  height: 168px;
-  border-radius: 14px;
+  top: 16px;
+  width: 118px;
+  height: 152px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 42, 0.36);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.3);
+  z-index: 2;
 }
 
 .local-fallback {
@@ -798,7 +800,9 @@ h3 {
   }
 
   .local-stage {
-    width: 100px;
-    height: 134px;
+    top: 12px;
+    right: 12px;
+    width: 92px;
+    height: 122px;
   }
 }
