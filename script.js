@@ -19,7 +19,27 @@ const state = {
 
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
 const PROFILE_STORAGE_KEY = "yaptalks_profile_v3";
-const XP_PER_LEVEL = 150;
+const RANKS = [
+  { minLevel: 1, title: "Newcomer" },
+  { minLevel: 3, title: "Chatter" },
+  { minLevel: 6, title: "Regular" },
+  { minLevel: 11, title: "Veteran" },
+  { minLevel: 16, title: "Pro Yapper" },
+  { minLevel: 26, title: "Elite" },
+  { minLevel: 41, title: "Legend" },
+];
+
+const ACHIEVEMENTS = [
+  { id: "first_match", label: "First Match", desc: "Complete 1 match", xpReward: 25, check: (p) => p.matchesCompleted >= 1 },
+  { id: "social_butterfly", label: "Social Butterfly", desc: "Add 3 friends", xpReward: 40, check: (p) => (p.friends || []).length >= 3 },
+  { id: "prompt_master", label: "Prompt Master", desc: "Send 10 prompts", xpReward: 30, check: (p) => (p.promptsSent || 0) >= 10 },
+  { id: "week_streak", label: "Week Streak", desc: "Maintain a 7-day streak", xpReward: 75, check: (p) => p.streakDays >= 7 },
+  { id: "reporter", label: "Safety Champion", desc: "File 5 reports", xpReward: 50, check: (p) => p.reportsFiled >= 5 },
+  { id: "party_animal", label: "Party Animal", desc: "Join a party room", xpReward: 20, check: (p) => p.joinedParty === true },
+  { id: "xp_hunter", label: "XP Hunter", desc: "Earn 500 total XP", xpReward: 0, check: (p) => (p.xp || 0) >= 500 },
+  { id: "centurion", label: "Centurion", desc: "Complete 100 matches", xpReward: 150, check: (p) => p.matchesCompleted >= 100 },
+];
+
 const PROMPTS = [
   "Drop your hottest take in 10 seconds.",
   "Tell one funny truth and one fake thing.",
@@ -75,6 +95,12 @@ const els = {
   friendsList: byId("friendsList"),
   refreshBoard: byId("refreshLeaderboardButton"),
   boardList: byId("leaderboardList"),
+  xpProgress: byId("xpProgress"),
+  xpMultiplier: byId("xpMultiplier"),
+  weeklyChallenge: byId("weeklyChallenge"),
+  achievementsList: byId("achievementsList"),
+  achievementsCount: byId("achievementsCount"),
+  rankBadge: byId("rankBadge"),
 };
 
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
@@ -256,6 +282,12 @@ function createDefaultProfile(today) {
     challengeAnnouncedDay: "",
     safetyGuard: true,
     friends: [],
+    achievements: [],
+    promptsSent: 0,
+    joinedParty: false,
+    weeklyMatchesWeek: "",
+    weeklyMatches: 0,
+    weeklyChallengeAnnouncedWeek: "",
   };
 }
 
@@ -297,12 +329,75 @@ function loadProfile() {
     profile.dailyMatchesDay = today;
     profile.dailyMatches = 0;
   }
+  if (!Array.isArray(profile.achievements)) profile.achievements = [];
+  const currentWeek = getWeekKey();
+  if (profile.weeklyMatchesWeek !== currentWeek) {
+    profile.weeklyMatchesWeek = currentWeek;
+    profile.weeklyMatches = 0;
+  }
   state.profile = profile;
   saveProfile();
 }
 
+function xpForNextLevel(level) {
+  return Math.floor(100 * Math.pow(1.35, level - 1));
+}
+
+function totalXpForLevel(level) {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let i = 1; i < level; i++) total += xpForNextLevel(i);
+  return total;
+}
+
 function levelFromXp(xp) {
-  return Math.max(1, Math.floor((Number(xp) || 0) / XP_PER_LEVEL) + 1);
+  let level = 1;
+  while (totalXpForLevel(level + 1) <= (Number(xp) || 0)) level++;
+  return level;
+}
+
+function xpProgress(xp) {
+  const level = levelFromXp(xp);
+  const start = totalXpForLevel(level);
+  const end = totalXpForLevel(level + 1);
+  const current = (Number(xp) || 0) - start;
+  const needed = end - start;
+  return { current, needed, pct: Math.min(100, Math.floor((current / needed) * 100)) };
+}
+
+function rankTitle(level) {
+  let title = RANKS[0].title;
+  for (const r of RANKS) if (level >= r.minLevel) title = r.title;
+  return title;
+}
+
+function xpMultiplierValue(streakDays) {
+  if (streakDays >= 30) return 2.0;
+  if (streakDays >= 14) return 1.75;
+  if (streakDays >= 7) return 1.5;
+  if (streakDays >= 3) return 1.25;
+  return 1.0;
+}
+
+function getWeekKey() {
+  const d = new Date();
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const year = d.getFullYear();
+  const week = Math.ceil((((d - new Date(year, 0, 1)) / 86400000) + 1) / 7);
+  return `${year}-W${week}`;
+}
+
+function showXpToast(points, boosted) {
+  const toast = document.createElement("div");
+  toast.className = boosted ? "xp-toast xp-toast-boosted" : "xp-toast";
+  toast.textContent = `+${points} XP`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("xp-toast-in")));
+  setTimeout(() => {
+    toast.classList.remove("xp-toast-in");
+    setTimeout(() => toast.remove(), 500);
+  }, 1600);
 }
 
 function trustScore(profile) {
@@ -348,32 +443,98 @@ function renderFriends() {
   });
 }
 
+function renderAchievements() {
+  if (!els.achievementsList || !state.profile) return;
+  const unlocked = new Set(state.profile.achievements || []);
+  const count = unlocked.size;
+  setText(els.achievementsCount, `${count} / ${ACHIEVEMENTS.length}`);
+  els.achievementsList.innerHTML = "";
+  ACHIEVEMENTS.forEach((ach) => {
+    const badge = document.createElement("div");
+    badge.className = unlocked.has(ach.id) ? "achievement-badge unlocked" : "achievement-badge locked";
+    badge.title = `${ach.label}: ${ach.desc}${ach.xpReward ? ` (+${ach.xpReward} XP)` : ""}`;
+    const icon = document.createElement("span");
+    icon.className = "achievement-icon";
+    icon.textContent = unlocked.has(ach.id) ? "★" : "○";
+    const label = document.createElement("span");
+    label.textContent = ach.label;
+    badge.appendChild(icon);
+    badge.appendChild(label);
+    els.achievementsList.appendChild(badge);
+  });
+}
+
+function checkAchievements() {
+  if (!state.profile) return;
+  if (!Array.isArray(state.profile.achievements)) state.profile.achievements = [];
+  let changed = false;
+  for (const ach of ACHIEVEMENTS) {
+    if (!state.profile.achievements.includes(ach.id) && ach.check(state.profile)) {
+      state.profile.achievements.push(ach.id);
+      changed = true;
+      if (ach.xpReward > 0) {
+        state.profile.xp = (Number(state.profile.xp) || 0) + ach.xpReward;
+        addMessage("System", `Achievement unlocked: ${ach.label}! +${ach.xpReward} XP.`);
+      } else {
+        addMessage("System", `Achievement unlocked: ${ach.label}!`);
+      }
+    }
+  }
+  if (changed) saveProfile();
+}
+
 function renderProfile() {
   if (!state.profile) return;
   const level = levelFromXp(state.profile.xp);
-  const progress = Math.floor(((Number(state.profile.xp) || 0) % XP_PER_LEVEL) / XP_PER_LEVEL * 100);
+  const { current, needed, pct } = xpProgress(state.profile.xp);
+  const rank = rankTitle(level);
+  const mult = xpMultiplierValue(state.profile.streakDays || 1);
+
   setText(els.streak, `${state.profile.streakDays} ${state.profile.streakDays === 1 ? "day" : "days"}`);
-  setText(els.level, String(level));
+  setText(els.level, `${level}`);
   setText(els.xp, String(state.profile.xp || 0));
+  if (els.rankBadge) els.rankBadge.textContent = rank;
+  if (els.xpProgress) els.xpProgress.textContent = `${current} / ${needed} XP to next level`;
+  if (els.xpMultiplier) {
+    els.xpMultiplier.textContent = `${mult}x streak boost`;
+    setHidden(els.xpMultiplier, mult <= 1);
+  }
   setText(els.trust, `Trust ${trustScore(state.profile)}`);
   setText(els.reports, String(state.profile.reportsFiled || 0));
   setText(els.matches, String(state.profile.matchesCompleted || 0));
-  const left = Math.max(0, 3 - (state.profile.dailyMatches || 0));
-  setText(els.challenge, left === 0 ? "Daily goal complete. Bonus unlocked." : `Daily goal: ${left} more matches for bonus XP.`);
+
+  const dailyLeft = Math.max(0, 3 - (state.profile.dailyMatches || 0));
+  setText(els.challenge, dailyLeft === 0
+    ? "Daily goal complete. Bonus unlocked."
+    : `Daily: ${dailyLeft} more match${dailyLeft === 1 ? "" : "es"} for +30 XP.`);
+
+  const weeklyLeft = Math.max(0, 15 - (state.profile.weeklyMatches || 0));
+  if (els.weeklyChallenge) {
+    els.weeklyChallenge.textContent = weeklyLeft === 0
+      ? "Weekly goal complete! +100 XP earned."
+      : `Weekly: ${weeklyLeft} more match${weeklyLeft === 1 ? "" : "es"} for +100 XP.`;
+  }
+
   setText(els.guard, `Safety Guard: ${state.profile.safetyGuard ? "ON" : "OFF"}`);
-  if (els.xpBar) els.xpBar.style.width = `${progress}%`;
+  if (els.xpBar) els.xpBar.style.width = `${pct}%`;
+  renderAchievements();
   renderFriends();
   maybePushProfileStats();
 }
 
 function awardXp(points, message) {
   if (!state.profile || !Number.isFinite(points) || points <= 0) return;
+  const mult = xpMultiplierValue(state.profile.streakDays || 1);
+  const actual = Math.floor(points * mult);
   const oldLevel = levelFromXp(state.profile.xp);
-  state.profile.xp = (Number(state.profile.xp) || 0) + Math.floor(points);
+  state.profile.xp = (Number(state.profile.xp) || 0) + actual;
   saveProfile();
+  checkAchievements();
   renderProfile();
-  if (message) addMessage("System", `${message} +${points} XP.`);
-  if (levelFromXp(state.profile.xp) > oldLevel) addMessage("System", `Level up! You are now level ${levelFromXp(state.profile.xp)}.`);
+  showXpToast(actual, mult > 1);
+  if (message) addMessage("System", `${message} +${actual} XP${mult > 1 ? ` (${mult}x streak boost)` : ""}.`);
+  const newLevel = levelFromXp(state.profile.xp);
+  if (newLevel > oldLevel) addMessage("System", `Level up! You are now level ${newLevel} — ${rankTitle(newLevel)}.`);
 }
 
 function addFriend(user) {
@@ -586,6 +747,7 @@ async function connectSocketIfNeeded() {
     if (isNewRoom && state.profile) {
       state.profile.matchesCompleted = (state.profile.matchesCompleted || 0) + 1;
       state.profile.dailyMatches = (state.profile.dailyMatches || 0) + 1;
+      state.profile.weeklyMatches = (state.profile.weeklyMatches || 0) + 1;
       saveProfile();
       renderProfile();
       awardXp(22);
@@ -593,6 +755,11 @@ async function connectSocketIfNeeded() {
         state.profile.challengeAnnouncedDay = getLocalDayKey();
         saveProfile();
         awardXp(30, "Daily challenge completed");
+      }
+      if (state.profile.weeklyMatches >= 15 && state.profile.weeklyChallengeAnnouncedWeek !== getWeekKey()) {
+        state.profile.weeklyChallengeAnnouncedWeek = getWeekKey();
+        saveProfile();
+        awardXp(100, "Weekly challenge completed");
       }
     }
     setText(els.queueStatus, "Connected");
@@ -643,8 +810,14 @@ async function connectSocketIfNeeded() {
   });
 
   socket.on("party-state", (payload = {}) => {
+    const wasInParty = Boolean(state.partyRoomCode);
     state.partyRoomCode = payload.code || "";
     state.partyMembers = Array.isArray(payload.members) ? payload.members : [];
+    if (state.partyRoomCode && !wasInParty && state.profile && !state.profile.joinedParty) {
+      state.profile.joinedParty = true;
+      saveProfile();
+      checkAchievements();
+    }
     renderPartyState();
   });
 
@@ -725,6 +898,10 @@ async function sendPromptToChat() {
     return;
   }
   state.socket.emit("chat-message", { text: `Prompt Battle: ${state.currentPrompt}` });
+  if (state.profile) {
+    state.profile.promptsSent = (state.profile.promptsSent || 0) + 1;
+    saveProfile();
+  }
   awardXp(4);
 }
 
