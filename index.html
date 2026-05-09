@@ -38,20 +38,14 @@
           "@type": "Organization",
           "name": "YapTalks",
           "url": "https://yaptalks.onrender.com/",
-          "founder": {
-            "@type": "Person",
-            "name": "Yash Raj"
-          }
+          "founder": { "@type": "Person", "name": "Yash Raj" }
         },
         {
           "@type": "WebSite",
           "name": "YapTalks",
           "url": "https://yaptalks.onrender.com/",
           "description": "Random video chat and text chat website with real-time online video calling.",
-          "publisher": {
-            "@type": "Organization",
-            "name": "YapTalks"
-          },
+          "publisher": { "@type": "Organization", "name": "YapTalks" },
           "potentialAction": {
             "@type": "SearchAction",
             "target": "https://yaptalks.onrender.com/?q={search_term_string}",
@@ -82,7 +76,9 @@
       </a>
 
       <div class="topbar-actions">
+        <span id="onlineCount" class="status-pill online-count">···</span>
         <span class="status-pill">Live platform</span>
+        <button id="darkModeButton" class="ghost-button" type="button">🌙 Dark</button>
         <button id="openAuthButton" class="secondary-button" type="button">Log in / Sign up</button>
         <button id="logoutButton" class="ghost-button" type="button" hidden>Log out</button>
       </div>
@@ -100,6 +96,8 @@
             <span>Random one-to-one video chat</span>
             <span>Live text chat with instant delivery</span>
             <span>Instant random matching</span>
+            <span>Interest-based matching</span>
+            <span>Ranks, XP &amp; achievements</span>
           </div>
         </section>
 
@@ -108,7 +106,7 @@
             <span class="eyebrow">Real-time Chat</span>
             <h2>Professional random chat experience</h2>
           </div>
-          <p>Enable camera, find a match, and chat instantly.</p>
+          <p>Pick interests, find a match, and chat instantly.</p>
         </div>
 
         <div class="app-grid" id="app">
@@ -132,14 +130,27 @@
               </div>
             </div>
 
+            <!-- Interests -->
             <div class="hype-card">
               <div class="hype-head">
-                <span class="eyebrow">Yap Streak</span>
+                <span class="eyebrow">Your Interests</span>
+                <span class="muted-tag">Pick up to 5</span>
+              </div>
+              <div class="interest-tags" id="interestTags"></div>
+            </div>
+
+            <!-- Yap Streak / Progression -->
+            <div class="hype-card">
+              <div class="hype-head">
+                <div class="streak-head-left">
+                  <span id="avatarDisplay" class="avatar-display">😊</span>
+                  <span class="eyebrow">Yap Streak</span>
+                </div>
                 <strong id="streakValue">1 day</strong>
               </div>
               <div class="rank-row">
                 <span class="rank-badge" id="rankBadge">Newcomer</span>
-                <span id="xpMultiplier" class="xp-boost-badge" hidden>1x streak boost</span>
+                <span id="xpMultiplier" class="xp-boost-badge" hidden>1x boost</span>
               </div>
               <div class="hype-grid">
                 <div>
@@ -155,10 +166,31 @@
                 <span id="xpBarFill"></span>
               </div>
               <p class="xp-progress-text" id="xpProgress">0 / 100 XP to next level</p>
+              <div id="prestigeCount" class="prestige-count"></div>
               <p id="challengeStatus">Daily: 3 matches for +30 XP.</p>
               <p id="weeklyChallenge">Weekly: 15 matches for +100 XP.</p>
+              <button id="prestigeButton" class="prestige-btn wide" type="button" hidden>✨ Prestige Now (Level 50+)</button>
             </div>
 
+            <!-- Avatar -->
+            <div class="hype-card">
+              <div class="hype-head">
+                <span class="eyebrow">Avatar</span>
+                <span class="muted-tag">Choose yours</span>
+              </div>
+              <div class="avatar-selector" id="avatarSelector"></div>
+            </div>
+
+            <!-- Daily Missions -->
+            <div class="hype-card">
+              <div class="hype-head">
+                <span class="eyebrow">Daily Missions</span>
+                <strong id="missionsCompleted">0 / 3</strong>
+              </div>
+              <div class="missions-list" id="missionsList"></div>
+            </div>
+
+            <!-- Prompt Battles -->
             <div class="hype-card">
               <div class="hype-head">
                 <span class="eyebrow">Prompt Battles</span>
@@ -171,6 +203,7 @@
               </div>
             </div>
 
+            <!-- Safety Center -->
             <div class="hype-card">
               <div class="hype-head">
                 <span class="eyebrow">Safety Center</span>
@@ -189,14 +222,16 @@
               <button class="secondary-button wide" id="safetyGuardButton" type="button">Safety Guard: ON</button>
             </div>
 
+            <!-- Achievements -->
             <div class="hype-card">
               <div class="hype-head">
                 <span class="eyebrow">Achievements</span>
-                <strong id="achievementsCount">0 / 8</strong>
+                <strong id="achievementsCount">0 / 16</strong>
               </div>
               <div class="achievements-list" id="achievementsList"></div>
             </div>
 
+            <!-- YapParty -->
             <div class="hype-card">
               <div class="hype-head">
                 <span class="eyebrow">YapParty</span>
@@ -219,6 +254,7 @@
               </div>
             </div>
 
+            <!-- Friends -->
             <div class="hype-card">
               <div class="hype-head">
                 <span class="eyebrow">Friends</span>
@@ -229,6 +265,7 @@
               <div class="friends-list" id="friendsList"></div>
             </div>
 
+            <!-- Leaderboard -->
             <div class="hype-card">
               <div class="hype-head">
                 <span class="eyebrow">Leaderboard</span>
@@ -244,7 +281,10 @@
                 <span class="stage-label">Live call</span>
                 <h3 id="matchHeadline">No active match</h3>
               </div>
-              <span class="badge">Live</span>
+              <div class="stage-topbar-right">
+                <span class="call-timer-badge" id="callTimer">0:00</span>
+                <span class="badge">Live</span>
+              </div>
             </div>
 
             <div class="video-stack">
@@ -287,8 +327,19 @@
               </div>
             </div>
 
+            <div class="typing-indicator" id="typingIndicator" hidden>Stranger is typing…</div>
+
+            <div class="emoji-reactions" id="emojiReactions">
+              <button class="emoji-btn" data-emoji="😂" type="button">😂</button>
+              <button class="emoji-btn" data-emoji="🔥" type="button">🔥</button>
+              <button class="emoji-btn" data-emoji="❤️" type="button">❤️</button>
+              <button class="emoji-btn" data-emoji="👏" type="button">👏</button>
+              <button class="emoji-btn" data-emoji="😮" type="button">😮</button>
+              <button class="emoji-btn" data-emoji="🎉" type="button">🎉</button>
+            </div>
+
             <div class="chat-composer">
-              <textarea id="chatInput" rows="3" placeholder="Type your message..."></textarea>
+              <textarea id="chatInput" rows="3" placeholder="Type your message... (Ctrl+Enter to send)"></textarea>
               <button class="primary-button wide" id="sendButton" type="button">Send message</button>
             </div>
           </aside>
@@ -307,6 +358,23 @@
       <span>Made by Yash Raj</span>
     </footer>
   </div>
+
+  <!-- Match Rating Overlay -->
+  <section class="rating-overlay" id="ratingOverlay" hidden>
+    <div class="rating-card panel">
+      <span class="eyebrow">Rate your match</span>
+      <h2>How was the conversation?</h2>
+      <p>Your rating helps improve match quality.</p>
+      <div class="rating-stars">
+        <button class="star-btn" data-stars="1" type="button">★</button>
+        <button class="star-btn" data-stars="2" type="button">★</button>
+        <button class="star-btn" data-stars="3" type="button">★</button>
+        <button class="star-btn" data-stars="4" type="button">★</button>
+        <button class="star-btn" data-stars="5" type="button">★</button>
+      </div>
+      <button class="ghost-button" id="skipRatingButton" type="button">Skip</button>
+    </div>
+  </section>
 
   <section class="auth-modal" id="authGate" hidden>
     <div class="auth-card panel" role="dialog" aria-modal="true" aria-labelledby="authTitle">

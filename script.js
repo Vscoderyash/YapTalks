@@ -15,10 +15,16 @@ const state = {
   partyRoomCode: "",
   incomingFriendRequest: null,
   lastStatsSig: "",
+  callStartTime: null,
+  callTimerInterval: null,
+  typingEmitTimeout: null,
+  typingDisplayTimeout: null,
+  darkMode: false,
 };
 
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
 const PROFILE_STORAGE_KEY = "yaptalks_profile_v3";
+
 const RANKS = [
   { minLevel: 1, title: "Newcomer" },
   { minLevel: 3, title: "Chatter" },
@@ -27,17 +33,48 @@ const RANKS = [
   { minLevel: 16, title: "Pro Yapper" },
   { minLevel: 26, title: "Elite" },
   { minLevel: 41, title: "Legend" },
+  { minLevel: 61, title: "Myth" },
+];
+
+const INTERESTS = [
+  "Gaming", "Music", "Sports", "Tech", "Art",
+  "Travel", "Food", "Movies", "Fitness", "Books",
+  "Memes", "Fashion",
+];
+
+const AVATARS = ["😊", "😎", "🎮", "🎵", "🔥", "💎", "🌟", "🐺", "🦊", "🐉", "🚀", "🎯"];
+
+const EMOJI_REACTIONS = ["😂", "🔥", "❤️", "👏", "😮", "🎉"];
+
+const MISSION_POOL = [
+  { id: "m_msg5", label: "Send 5 messages", field: "dailyMessages", target: 5, xp: 15 },
+  { id: "m_match2", label: "Complete 2 matches", field: "dailyMatchCount", target: 2, xp: 20 },
+  { id: "m_prompt3", label: "Send 3 prompts", field: "dailyPrompts", target: 3, xp: 18 },
+  { id: "m_react5", label: "Send 5 reactions", field: "dailyReactions", target: 5, xp: 12 },
+  { id: "m_rate1", label: "Rate a match", field: "dailyRatings", target: 1, xp: 15 },
+  { id: "m_partymsg", label: "Send a party message", field: "dailyPartyMsgs", target: 1, xp: 10 },
+  { id: "m_match5", label: "Complete 5 matches", field: "dailyMatchCount", target: 5, xp: 40 },
+  { id: "m_msg10", label: "Send 10 messages", field: "dailyMessages", target: 10, xp: 25 },
+  { id: "m_friend1", label: "Add a friend", field: "dailyFriends", target: 1, xp: 25 },
 ];
 
 const ACHIEVEMENTS = [
   { id: "first_match", label: "First Match", desc: "Complete 1 match", xpReward: 25, check: (p) => p.matchesCompleted >= 1 },
   { id: "social_butterfly", label: "Social Butterfly", desc: "Add 3 friends", xpReward: 40, check: (p) => (p.friends || []).length >= 3 },
   { id: "prompt_master", label: "Prompt Master", desc: "Send 10 prompts", xpReward: 30, check: (p) => (p.promptsSent || 0) >= 10 },
-  { id: "week_streak", label: "Week Streak", desc: "Maintain a 7-day streak", xpReward: 75, check: (p) => p.streakDays >= 7 },
+  { id: "week_streak", label: "Week Streak", desc: "7-day streak", xpReward: 75, check: (p) => p.streakDays >= 7 },
   { id: "reporter", label: "Safety Champion", desc: "File 5 reports", xpReward: 50, check: (p) => p.reportsFiled >= 5 },
   { id: "party_animal", label: "Party Animal", desc: "Join a party room", xpReward: 20, check: (p) => p.joinedParty === true },
   { id: "xp_hunter", label: "XP Hunter", desc: "Earn 500 total XP", xpReward: 0, check: (p) => (p.xp || 0) >= 500 },
   { id: "centurion", label: "Centurion", desc: "Complete 100 matches", xpReward: 150, check: (p) => p.matchesCompleted >= 100 },
+  { id: "reactor", label: "Reactor", desc: "Send 20 emoji reactions", xpReward: 20, check: (p) => (p.reactionsUsed || 0) >= 20 },
+  { id: "critic", label: "Critic", desc: "Rate 5 matches", xpReward: 25, check: (p) => (p.ratingsGiven || 0) >= 5 },
+  { id: "night_owl", label: "Night Owl", desc: "Complete a match after 11pm", xpReward: 30, check: (p) => p.nightOwl === true },
+  { id: "avatar_up", label: "Avatar Up", desc: "Set a custom avatar", xpReward: 10, check: (p) => p.avatar && p.avatar !== "😊" },
+  { id: "interest_seeker", label: "Interest Seeker", desc: "Select 3 interests", xpReward: 15, check: (p) => (p.interests || []).length >= 3 },
+  { id: "speed_yapper", label: "Speed Yapper", desc: "Complete 5 matches in one day", xpReward: 50, check: (p) => (p.dailyMatches || 0) >= 5 },
+  { id: "prestige_1", label: "Prestige", desc: "Reach first prestige", xpReward: 200, check: (p) => (p.prestige || 0) >= 1 },
+  { id: "legend_lvl", label: "Legend", desc: "Reach level 41", xpReward: 100, check: (p) => levelFromXp(p.xp || 0) >= 41 },
 ];
 
 const PROMPTS = [
@@ -46,6 +83,11 @@ const PROMPTS = [
   "What habit changed your life the most?",
   "What is your most unpopular food opinion?",
   "Describe your week in 3 words.",
+  "What would you do with a free day tomorrow?",
+  "Pick: time travel to past or future?",
+  "Name one thing you secretly love but never admit.",
+  "What app could you not survive without?",
+  "Best or worst purchase you made recently?",
 ];
 
 const byId = (id) => document.getElementById(id);
@@ -100,6 +142,19 @@ const els = {
   achievementsList: byId("achievementsList"),
   achievementsCount: byId("achievementsCount"),
   rankBadge: byId("rankBadge"),
+  darkModeBtn: byId("darkModeButton"),
+  onlineCount: byId("onlineCount"),
+  callTimer: byId("callTimer"),
+  typingIndicator: byId("typingIndicator"),
+  avatarDisplay: byId("avatarDisplay"),
+  avatarSelector: byId("avatarSelector"),
+  interestTags: byId("interestTags"),
+  missionsList: byId("missionsList"),
+  missionsCompleted: byId("missionsCompleted"),
+  ratingOverlay: byId("ratingOverlay"),
+  prestigeButton: byId("prestigeButton"),
+  prestigeCount: byId("prestigeCount"),
+  emojiReactions: byId("emojiReactions"),
 };
 
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
@@ -172,51 +227,28 @@ function resolveBackendUrl() {
   const fallback = normalizeBackendUrl(DEPLOYED_BACKEND_URL);
   const currentOrigin = normalizeBackendUrl(window.location.origin);
   let saved = "";
-
   try {
     saved = localStorage.getItem("yaptalks_backend_url") || "";
   } catch (error) {
     saved = "";
   }
-
   if (reset === "1") {
-    try {
-      localStorage.removeItem("yaptalks_backend_url");
-    } catch (error) {
-      // Ignore storage restrictions.
-    }
+    try { localStorage.removeItem("yaptalks_backend_url"); } catch (error) {}
     saved = "";
   }
-
   if (query) {
     const normalized = normalizeBackendUrl(query);
-    try {
-      localStorage.setItem("yaptalks_backend_url", normalized);
-    } catch (error) {
-      // Ignore storage restrictions.
-    }
+    try { localStorage.setItem("yaptalks_backend_url", normalized); } catch (error) {}
     return normalized;
   }
-
   const savedNormalized = saved ? normalizeBackendUrl(saved) : "";
-
-  // Vercel static hosting does not run this Socket.IO backend.
-  // When opened on vercel.app, default to Render unless explicitly overridden.
   if (isVercelHost(window.location.hostname)) {
-    const shouldUseFallback =
-      !savedNormalized ||
-      savedNormalized === currentOrigin ||
-      savedNormalized.includes(".vercel.app");
+    const shouldUseFallback = !savedNormalized || savedNormalized === currentOrigin || savedNormalized.includes(".vercel.app");
     if (shouldUseFallback) {
-      try {
-        localStorage.setItem("yaptalks_backend_url", fallback);
-      } catch (error) {
-        // Ignore storage restrictions.
-      }
+      try { localStorage.setItem("yaptalks_backend_url", fallback); } catch (error) {}
       return fallback;
     }
   }
-
   return savedNormalized || fallback;
 }
 
@@ -251,9 +283,7 @@ async function ensureSocketClient() {
       try {
         await loadScript(url);
         if (typeof io === "function") return;
-      } catch (error) {
-        // Try next source.
-      }
+      } catch (error) {}
     }
   })();
   await state.socketClientLoadPromise;
@@ -261,74 +291,7 @@ async function ensureSocketClient() {
   return typeof io === "function";
 }
 
-function createDefaultProfile(today) {
-  return {
-    lastActiveDay: today,
-    streakDays: 1,
-    xp: 0,
-    reportsFiled: 0,
-    matchesCompleted: 0,
-    dailyMatchesDay: today,
-    dailyMatches: 0,
-    challengeAnnouncedDay: "",
-    safetyGuard: true,
-    friends: [],
-    achievements: [],
-    promptsSent: 0,
-    joinedParty: false,
-    weeklyMatchesWeek: "",
-    weeklyMatches: 0,
-    weeklyChallengeAnnouncedWeek: "",
-  };
-}
-
-function getLocalDayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function dayDiff(a, b) {
-  const pa = new Date(`${a}T00:00:00`);
-  const pb = new Date(`${b}T00:00:00`);
-  return Math.round((pb - pa) / (24 * 60 * 60 * 1000));
-}
-
-function saveProfile() {
-  if (!state.profile) return;
-  try {
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile));
-  } catch (error) {
-    // Ignore.
-  }
-}
-
-function loadProfile() {
-  const today = getLocalDayKey();
-  const fallback = createDefaultProfile(today);
-  let parsed = null;
-  try {
-    parsed = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "null");
-  } catch (error) {
-    parsed = null;
-  }
-  const profile = { ...fallback, ...(parsed && typeof parsed === "object" ? parsed : {}) };
-  profile.friends = Array.isArray(profile.friends) ? profile.friends.filter((f) => f && f.uid) : [];
-  const gap = dayDiff(profile.lastActiveDay || today, today);
-  profile.streakDays = gap === 1 ? Number(profile.streakDays || 1) + 1 : gap > 1 ? 1 : Number(profile.streakDays || 1);
-  profile.lastActiveDay = today;
-  if (profile.dailyMatchesDay !== today) {
-    profile.dailyMatchesDay = today;
-    profile.dailyMatches = 0;
-  }
-  if (!Array.isArray(profile.achievements)) profile.achievements = [];
-  const currentWeek = getWeekKey();
-  if (profile.weeklyMatchesWeek !== currentWeek) {
-    profile.weeklyMatchesWeek = currentWeek;
-    profile.weeklyMatches = 0;
-  }
-  state.profile = profile;
-  saveProfile();
-}
+// ── Progression helpers ──────────────────────────────────────────────────────
 
 function xpForNextLevel(level) {
   return Math.floor(100 * Math.pow(1.35, level - 1));
@@ -362,12 +325,24 @@ function rankTitle(level) {
   return title;
 }
 
-function xpMultiplierValue(streakDays) {
-  if (streakDays >= 30) return 2.0;
-  if (streakDays >= 14) return 1.75;
-  if (streakDays >= 7) return 1.5;
-  if (streakDays >= 3) return 1.25;
-  return 1.0;
+function xpMultiplierValue(streakDays, prestige = 0) {
+  let base = 1.0;
+  if (streakDays >= 30) base = 2.0;
+  else if (streakDays >= 14) base = 1.75;
+  else if (streakDays >= 7) base = 1.5;
+  else if (streakDays >= 3) base = 1.25;
+  return Math.round((base + prestige * 0.1) * 100) / 100;
+}
+
+function getLocalDayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function dayDiff(a, b) {
+  const pa = new Date(`${a}T00:00:00`);
+  const pb = new Date(`${b}T00:00:00`);
+  return Math.round((pb - pa) / (24 * 60 * 60 * 1000));
 }
 
 function getWeekKey() {
@@ -378,6 +353,87 @@ function getWeekKey() {
   const week = Math.ceil((((d - new Date(year, 0, 1)) / 86400000) + 1) / 7);
   return `${year}-W${week}`;
 }
+
+// ── Sound effects (Web Audio API) ────────────────────────────────────────────
+
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === "match") {
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.12);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.24);
+      gain.gain.setValueAtTime(0.22, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } else if (type === "message") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.18);
+    } else if (type === "levelup") {
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+      osc.frequency.setValueAtTime(1047, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.28, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.7);
+    }
+  } catch (e) {}
+}
+
+// ── Confetti ──────────────────────────────────────────────────────────────────
+
+function launchConfetti() {
+  const canvas = document.createElement("canvas");
+  canvas.className = "confetti-canvas";
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  const colors = ["#0ea37f", "#0f6ee9", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+  const pieces = Array.from({ length: 90 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -14,
+    w: Math.random() * 8 + 4,
+    h: Math.random() * 14 + 6,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vy: Math.random() * 3 + 2,
+    vx: (Math.random() - 0.5) * 2.5,
+    rot: Math.random() * 360,
+    rotV: (Math.random() - 0.5) * 8,
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.rotV;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 130) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  requestAnimationFrame(draw);
+}
+
+// ── XP Toast ─────────────────────────────────────────────────────────────────
 
 function showXpToast(points, boosted) {
   const toast = document.createElement("div");
@@ -391,12 +447,282 @@ function showXpToast(points, boosted) {
   }, 1600);
 }
 
+// ── Call Timer ────────────────────────────────────────────────────────────────
+
+function startCallTimer() {
+  state.callStartTime = Date.now();
+  if (els.callTimer) els.callTimer.textContent = "0:00";
+  state.callTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - state.callStartTime) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    if (els.callTimer) els.callTimer.textContent = `${m}:${String(s).padStart(2, "0")}`;
+  }, 1000);
+}
+
+function stopCallTimer() {
+  if (state.callTimerInterval) {
+    clearInterval(state.callTimerInterval);
+    state.callTimerInterval = null;
+  }
+  const elapsed = state.callStartTime ? Math.floor((Date.now() - state.callStartTime) / 1000) : 0;
+  state.callStartTime = null;
+  if (els.callTimer) els.callTimer.textContent = "0:00";
+  return elapsed;
+}
+
+// ── Dark Mode ─────────────────────────────────────────────────────────────────
+
+function applyDarkMode(on) {
+  state.darkMode = on;
+  document.body.classList.toggle("dark-mode", on);
+  if (els.darkModeBtn) els.darkModeBtn.textContent = on ? "☀ Light" : "🌙 Dark";
+}
+
+function initDarkMode() {
+  let saved = false;
+  try { saved = localStorage.getItem("yaptalks_dark_mode") === "1"; } catch (e) {}
+  applyDarkMode(saved);
+}
+
+function toggleDarkMode() {
+  applyDarkMode(!state.darkMode);
+  try { localStorage.setItem("yaptalks_dark_mode", state.darkMode ? "1" : "0"); } catch (e) {}
+}
+
+// ── Profile helpers ──────────────────────────────────────────────────────────
+
+function createDefaultProfile(today) {
+  return {
+    lastActiveDay: today,
+    streakDays: 1,
+    xp: 0,
+    reportsFiled: 0,
+    matchesCompleted: 0,
+    dailyMatchesDay: today,
+    dailyMatches: 0,
+    challengeAnnouncedDay: "",
+    safetyGuard: true,
+    friends: [],
+    achievements: [],
+    promptsSent: 0,
+    joinedParty: false,
+    weeklyMatchesWeek: "",
+    weeklyMatches: 0,
+    weeklyChallengeAnnouncedWeek: "",
+    avatar: "😊",
+    interests: [],
+    reactionsUsed: 0,
+    ratingsGiven: 0,
+    nightOwl: false,
+    prestige: 0,
+    dailyMissionsDay: "",
+    dailyMissionProgress: {},
+    dailyMissionsCompleted: [],
+  };
+}
+
+function saveProfile() {
+  if (!state.profile) return;
+  try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile)); } catch (error) {}
+}
+
+function loadProfile() {
+  const today = getLocalDayKey();
+  const fallback = createDefaultProfile(today);
+  let parsed = null;
+  try { parsed = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "null"); } catch (error) {}
+  const profile = { ...fallback, ...(parsed && typeof parsed === "object" ? parsed : {}) };
+  profile.friends = Array.isArray(profile.friends) ? profile.friends.filter((f) => f && f.uid) : [];
+  const gap = dayDiff(profile.lastActiveDay || today, today);
+  profile.streakDays = gap === 1 ? Number(profile.streakDays || 1) + 1 : gap > 1 ? 1 : Number(profile.streakDays || 1);
+  profile.lastActiveDay = today;
+  if (profile.dailyMatchesDay !== today) {
+    profile.dailyMatchesDay = today;
+    profile.dailyMatches = 0;
+  }
+  if (!Array.isArray(profile.achievements)) profile.achievements = [];
+  const currentWeek = getWeekKey();
+  if (profile.weeklyMatchesWeek !== currentWeek) {
+    profile.weeklyMatchesWeek = currentWeek;
+    profile.weeklyMatches = 0;
+  }
+  if (profile.dailyMissionsDay !== today) {
+    profile.dailyMissionsDay = today;
+    profile.dailyMissionProgress = {};
+    profile.dailyMissionsCompleted = [];
+  }
+  state.profile = profile;
+  saveProfile();
+}
+
+// ── Missions ──────────────────────────────────────────────────────────────────
+
+function getDailyMissions() {
+  const seed = parseInt(getLocalDayKey().replace(/-/g, ""), 10);
+  const pool = [...MISSION_POOL];
+  let s = seed;
+  for (let i = pool.length - 1; i > 0; i--) {
+    s = (Math.imul(s, 1103515245) + 12345) & 0x7fffffff;
+    const j = s % (i + 1);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, 3);
+}
+
+function updateMissionProgress(field, amount = 1) {
+  if (!state.profile) return;
+  if (!state.profile.dailyMissionProgress) state.profile.dailyMissionProgress = {};
+  state.profile.dailyMissionProgress[field] = (state.profile.dailyMissionProgress[field] || 0) + amount;
+  const missions = getDailyMissions();
+  const today = getLocalDayKey();
+  if (!Array.isArray(state.profile.dailyMissionsCompleted)) state.profile.dailyMissionsCompleted = [];
+  missions.forEach((m) => {
+    const key = `${today}_${m.id}`;
+    if (state.profile.dailyMissionsCompleted.includes(key)) return;
+    const prog = state.profile.dailyMissionProgress[m.field] || 0;
+    if (prog >= m.target) {
+      state.profile.dailyMissionsCompleted.push(key);
+      saveProfile();
+      awardXp(m.xp, `Mission: ${m.label}`);
+    }
+  });
+  saveProfile();
+  renderMissions();
+}
+
+function renderMissions() {
+  if (!els.missionsList || !state.profile) return;
+  const missions = getDailyMissions();
+  const today = getLocalDayKey();
+  const completed = new Set(state.profile.dailyMissionsCompleted || []);
+  const progress = state.profile.dailyMissionProgress || {};
+  els.missionsList.innerHTML = "";
+  let doneCount = 0;
+  missions.forEach((m) => {
+    const key = `${today}_${m.id}`;
+    const done = completed.has(key);
+    if (done) doneCount++;
+    const current = Math.min(progress[m.field] || 0, m.target);
+    const pct = Math.min(100, Math.floor((current / m.target) * 100));
+    const row = document.createElement("div");
+    row.className = done ? "mission-row done" : "mission-row";
+    row.innerHTML = `
+      <div class="mission-info">
+        <span class="mission-label">${done ? "✓ " : ""}${m.label}</span>
+        <span class="mission-reward">+${m.xp} XP</span>
+      </div>
+      <div class="mission-bar"><span style="width:${pct}%"></span></div>
+      <span class="mission-prog">${current}/${m.target}</span>
+    `;
+    els.missionsList.appendChild(row);
+  });
+  setText(els.missionsCompleted, `${doneCount} / 3`);
+}
+
+// ── Interest Tags ─────────────────────────────────────────────────────────────
+
+function renderInterestTags() {
+  if (!els.interestTags || !state.profile) return;
+  const selected = new Set(state.profile.interests || []);
+  els.interestTags.innerHTML = "";
+  INTERESTS.forEach((tag) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = selected.has(tag) ? "interest-tag active" : "interest-tag";
+    btn.textContent = tag;
+    btn.addEventListener("click", () => {
+      if (selected.has(tag)) {
+        selected.delete(tag);
+      } else if (selected.size < 5) {
+        selected.add(tag);
+      }
+      state.profile.interests = [...selected];
+      saveProfile();
+      checkAchievements();
+      renderInterestTags();
+    });
+    els.interestTags.appendChild(btn);
+  });
+}
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+
+function renderAvatarSelector() {
+  if (!els.avatarSelector || !state.profile) return;
+  els.avatarSelector.innerHTML = "";
+  AVATARS.forEach((emoji) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = state.profile.avatar === emoji ? "avatar-option selected" : "avatar-option";
+    btn.textContent = emoji;
+    btn.title = emoji;
+    btn.addEventListener("click", () => {
+      state.profile.avatar = emoji;
+      saveProfile();
+      checkAchievements();
+      renderProfile();
+      renderAvatarSelector();
+    });
+    els.avatarSelector.appendChild(btn);
+  });
+}
+
+// ── Match Rating ──────────────────────────────────────────────────────────────
+
+function showRatingOverlay() {
+  if (els.ratingOverlay) els.ratingOverlay.hidden = false;
+}
+
+function dismissRatingOverlay() {
+  if (els.ratingOverlay) els.ratingOverlay.hidden = true;
+}
+
+function submitRating(stars) {
+  dismissRatingOverlay();
+  if (!state.profile) return;
+  state.profile.ratingsGiven = (state.profile.ratingsGiven || 0) + 1;
+  saveProfile();
+  updateMissionProgress("dailyRatings", 1);
+  awardXp(5, `Match rated ${stars}★`);
+  checkAchievements();
+}
+
+// ── Prestige ──────────────────────────────────────────────────────────────────
+
+function checkPrestige() {
+  if (!state.profile) return;
+  const level = levelFromXp(state.profile.xp);
+  setHidden(els.prestigeButton, level < 50);
+}
+
+function doPrestige() {
+  if (!state.profile) return;
+  if (levelFromXp(state.profile.xp) < 50) {
+    addMessage("System", "Reach level 50 to unlock prestige.");
+    return;
+  }
+  state.profile.prestige = (state.profile.prestige || 0) + 1;
+  state.profile.xp = 0;
+  saveProfile();
+  checkAchievements();
+  renderProfile();
+  launchConfetti();
+  playSound("levelup");
+  addMessage("System", `Prestige ${state.profile.prestige} achieved! XP resets — your multiplier is now ${xpMultiplierValue(state.profile.streakDays, state.profile.prestige)}x.`);
+  setHidden(els.prestigeButton, true);
+}
+
+// ── Trust Score ───────────────────────────────────────────────────────────────
+
 function trustScore(profile) {
   let score = 72 + Math.min(12, profile.streakDays * 2) + Math.min(10, Math.floor(profile.matchesCompleted / 4) * 2);
   score += profile.safetyGuard ? 5 : -5;
   score += Math.min(4, profile.reportsFiled);
   return Math.max(50, Math.min(99, score));
 }
+
+// ── Profile Stats Push ────────────────────────────────────────────────────────
 
 function maybePushProfileStats(force = false) {
   if (!state.socket || !state.isAuthenticated || !state.profile) return;
@@ -416,29 +742,12 @@ function maybePushProfileStats(force = false) {
   state.socket.emit("profile-stats", payload);
 }
 
-function renderFriends() {
-  if (!state.profile || !els.friendsList) return;
-  const friends = state.profile.friends || [];
-  setText(els.friendsCount, `${friends.length} friend${friends.length === 1 ? "" : "s"}`);
-  els.friendsList.innerHTML = "";
-  if (friends.length === 0) {
-    const item = document.createElement("span");
-    item.textContent = "No friends yet.";
-    els.friendsList.appendChild(item);
-    return;
-  }
-  friends.slice().reverse().slice(0, 6).forEach((friend) => {
-    const item = document.createElement("span");
-    item.textContent = `${friend.name || friend.uid} · friend`;
-    els.friendsList.appendChild(item);
-  });
-}
+// ── Achievements ──────────────────────────────────────────────────────────────
 
 function renderAchievements() {
   if (!els.achievementsList || !state.profile) return;
   const unlocked = new Set(state.profile.achievements || []);
-  const count = unlocked.size;
-  setText(els.achievementsCount, `${count} / ${ACHIEVEMENTS.length}`);
+  setText(els.achievementsCount, `${unlocked.size} / ${ACHIEVEMENTS.length}`);
   els.achievementsList.innerHTML = "";
   ACHIEVEMENTS.forEach((ach) => {
     const badge = document.createElement("div");
@@ -474,79 +783,27 @@ function checkAchievements() {
   if (changed) saveProfile();
 }
 
-function renderProfile() {
-  if (!state.profile) return;
-  const level = levelFromXp(state.profile.xp);
-  const { current, needed, pct } = xpProgress(state.profile.xp);
-  const rank = rankTitle(level);
-  const mult = xpMultiplierValue(state.profile.streakDays || 1);
+// ── Render Friends ────────────────────────────────────────────────────────────
 
-  setText(els.streak, `${state.profile.streakDays} ${state.profile.streakDays === 1 ? "day" : "days"}`);
-  setText(els.level, `${level}`);
-  setText(els.xp, String(state.profile.xp || 0));
-  if (els.rankBadge) els.rankBadge.textContent = rank;
-  if (els.xpProgress) els.xpProgress.textContent = `${current} / ${needed} XP to next level`;
-  if (els.xpMultiplier) {
-    els.xpMultiplier.textContent = `${mult}x streak boost`;
-    setHidden(els.xpMultiplier, mult <= 1);
+function renderFriends() {
+  if (!state.profile || !els.friendsList) return;
+  const friends = state.profile.friends || [];
+  setText(els.friendsCount, `${friends.length} friend${friends.length === 1 ? "" : "s"}`);
+  els.friendsList.innerHTML = "";
+  if (friends.length === 0) {
+    const item = document.createElement("span");
+    item.textContent = "No friends yet.";
+    els.friendsList.appendChild(item);
+    return;
   }
-  setText(els.trust, `Trust ${trustScore(state.profile)}`);
-  setText(els.reports, String(state.profile.reportsFiled || 0));
-  setText(els.matches, String(state.profile.matchesCompleted || 0));
-
-  const dailyLeft = Math.max(0, 3 - (state.profile.dailyMatches || 0));
-  setText(els.challenge, dailyLeft === 0
-    ? "Daily goal complete. Bonus unlocked."
-    : `Daily: ${dailyLeft} more match${dailyLeft === 1 ? "" : "es"} for +30 XP.`);
-
-  const weeklyLeft = Math.max(0, 15 - (state.profile.weeklyMatches || 0));
-  if (els.weeklyChallenge) {
-    els.weeklyChallenge.textContent = weeklyLeft === 0
-      ? "Weekly goal complete! +100 XP earned."
-      : `Weekly: ${weeklyLeft} more match${weeklyLeft === 1 ? "" : "es"} for +100 XP.`;
-  }
-
-  setText(els.guard, `Safety Guard: ${state.profile.safetyGuard ? "ON" : "OFF"}`);
-  if (els.xpBar) els.xpBar.style.width = `${pct}%`;
-  renderAchievements();
-  renderFriends();
-  maybePushProfileStats();
+  friends.slice().reverse().slice(0, 6).forEach((friend) => {
+    const item = document.createElement("span");
+    item.textContent = `${friend.name || friend.uid} · friend`;
+    els.friendsList.appendChild(item);
+  });
 }
 
-function awardXp(points, message) {
-  if (!state.profile || !Number.isFinite(points) || points <= 0) return;
-  const mult = xpMultiplierValue(state.profile.streakDays || 1);
-  const actual = Math.floor(points * mult);
-  const oldLevel = levelFromXp(state.profile.xp);
-  state.profile.xp = (Number(state.profile.xp) || 0) + actual;
-  saveProfile();
-  checkAchievements();
-  renderProfile();
-  showXpToast(actual, mult > 1);
-  if (message) addMessage("System", `${message} +${actual} XP${mult > 1 ? ` (${mult}x streak boost)` : ""}.`);
-  const newLevel = levelFromXp(state.profile.xp);
-  if (newLevel > oldLevel) addMessage("System", `Level up! You are now level ${newLevel} — ${rankTitle(newLevel)}.`);
-}
-
-function addFriend(user) {
-  if (!state.profile || !user || !user.uid) return;
-  if (state.profile.friends.some((f) => f.uid === user.uid)) return;
-  state.profile.friends.push({ uid: user.uid, name: user.name || "Friend", addedAt: Date.now() });
-  saveProfile();
-  renderProfile();
-  awardXp(15, "Mutual add completed");
-}
-
-function setPrompt(text) {
-  state.currentPrompt = text;
-  setText(els.promptText, text);
-}
-
-function nextPrompt() {
-  let prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
-  if (PROMPTS.length > 1) while (prompt === state.currentPrompt) prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
-  setPrompt(prompt);
-}
+// ── Render Leaderboard ────────────────────────────────────────────────────────
 
 function renderLeaderboard(items) {
   if (!els.boardList) return;
@@ -560,8 +817,9 @@ function renderLeaderboard(items) {
   items.slice(0, 6).forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "leaderboard-item";
+    const medal = ["🥇", "🥈", "🥉"][index] || `#${index + 1}`;
     const name = document.createElement("span");
-    name.textContent = `#${index + 1} ${item.name || "Yap User"}`;
+    name.textContent = `${medal} ${item.name || "Yap User"}`;
     const score = document.createElement("strong");
     score.textContent = `${item.xp || 0} XP`;
     row.appendChild(name);
@@ -569,6 +827,8 @@ function renderLeaderboard(items) {
     els.boardList.appendChild(row);
   });
 }
+
+// ── Render Party State ────────────────────────────────────────────────────────
 
 function renderPartyState() {
   const inRoom = Boolean(state.partyRoomCode);
@@ -590,8 +850,103 @@ function renderPartyState() {
   });
 }
 
+// ── Render Profile ────────────────────────────────────────────────────────────
+
+function renderProfile() {
+  if (!state.profile) return;
+  const level = levelFromXp(state.profile.xp);
+  const { current, needed, pct } = xpProgress(state.profile.xp);
+  const rank = rankTitle(level);
+  const prestige = state.profile.prestige || 0;
+  const mult = xpMultiplierValue(state.profile.streakDays || 1, prestige);
+  const prestigeStars = prestige > 0 ? " " + "⭐".repeat(Math.min(prestige, 5)) : "";
+
+  setText(els.streak, `${state.profile.streakDays} ${state.profile.streakDays === 1 ? "day" : "days"}`);
+  setText(els.level, `${level}${prestigeStars}`);
+  setText(els.xp, String(state.profile.xp || 0));
+  if (els.rankBadge) els.rankBadge.textContent = rank;
+  if (els.avatarDisplay) els.avatarDisplay.textContent = state.profile.avatar || "😊";
+  if (els.prestigeCount) els.prestigeCount.textContent = prestige > 0 ? `${prestige} Prestige${prestige > 1 ? "s" : ""}` : "";
+  if (els.xpProgress) els.xpProgress.textContent = `${current} / ${needed} XP to next level`;
+  if (els.xpMultiplier) {
+    els.xpMultiplier.textContent = `${mult}x boost`;
+    setHidden(els.xpMultiplier, mult <= 1);
+  }
+  setText(els.trust, `Trust ${trustScore(state.profile)}`);
+  setText(els.reports, String(state.profile.reportsFiled || 0));
+  setText(els.matches, String(state.profile.matchesCompleted || 0));
+
+  const dailyLeft = Math.max(0, 3 - (state.profile.dailyMatches || 0));
+  setText(els.challenge, dailyLeft === 0
+    ? "Daily goal complete. Bonus unlocked."
+    : `Daily: ${dailyLeft} more match${dailyLeft === 1 ? "" : "es"} for +30 XP.`);
+
+  const weeklyLeft = Math.max(0, 15 - (state.profile.weeklyMatches || 0));
+  if (els.weeklyChallenge) {
+    els.weeklyChallenge.textContent = weeklyLeft === 0
+      ? "Weekly goal complete! +100 XP earned."
+      : `Weekly: ${weeklyLeft} more match${weeklyLeft === 1 ? "" : "es"} for +100 XP.`;
+  }
+
+  setText(els.guard, `Safety Guard: ${state.profile.safetyGuard ? "ON" : "OFF"}`);
+  if (els.xpBar) els.xpBar.style.width = `${pct}%`;
+  checkPrestige();
+  renderAchievements();
+  renderFriends();
+  renderMissions();
+  maybePushProfileStats();
+}
+
+// ── Award XP ──────────────────────────────────────────────────────────────────
+
+function awardXp(points, message) {
+  if (!state.profile || !Number.isFinite(points) || points <= 0) return;
+  const mult = xpMultiplierValue(state.profile.streakDays || 1, state.profile.prestige || 0);
+  const actual = Math.floor(points * mult);
+  const oldLevel = levelFromXp(state.profile.xp);
+  state.profile.xp = (Number(state.profile.xp) || 0) + actual;
+  saveProfile();
+  checkAchievements();
+  renderProfile();
+  showXpToast(actual, mult > 1);
+  if (message) addMessage("System", `${message} +${actual} XP${mult > 1.01 ? ` (${mult}x boost)` : ""}.`);
+  const newLevel = levelFromXp(state.profile.xp);
+  if (newLevel > oldLevel) {
+    addMessage("System", `Level up! You are now level ${newLevel} — ${rankTitle(newLevel)}.`);
+    playSound("levelup");
+    launchConfetti();
+  }
+}
+
+// ── Add Friend ────────────────────────────────────────────────────────────────
+
+function addFriend(user) {
+  if (!state.profile || !user || !user.uid) return;
+  if (state.profile.friends.some((f) => f.uid === user.uid)) return;
+  state.profile.friends.push({ uid: user.uid, name: user.name || "Friend", addedAt: Date.now() });
+  saveProfile();
+  renderProfile();
+  awardXp(15, "Mutual add completed");
+  updateMissionProgress("dailyFriends", 1);
+}
+
+// ── Prompts ───────────────────────────────────────────────────────────────────
+
+function setPrompt(text) {
+  state.currentPrompt = text;
+  setText(els.promptText, text);
+}
+
+function nextPrompt() {
+  let prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  if (PROMPTS.length > 1) while (prompt === state.currentPrompt) prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  setPrompt(prompt);
+}
+
+// ── WebRTC helpers ────────────────────────────────────────────────────────────
+
 function currentMatchOptions() {
-  return { mode: "video", filter: "all" };
+  return { mode: "video", filter: "all", interests: state.profile?.interests || [] };
 }
 
 function resetPeer() {
@@ -615,13 +970,17 @@ function setDisconnectedUI(reason) {
 }
 
 function clearMatch(reason) {
+  const elapsed = stopCallTimer();
   state.currentPeerId = null;
   state.currentRoomId = null;
   state.incomingFriendRequest = null;
   setHidden(els.acceptFriend, true);
+  setHidden(els.typingIndicator, true);
+  clearTimeout(state.typingDisplayTimeout);
   resetPeer();
   clearRemoteMedia();
   setDisconnectedUI(reason);
+  if (elapsed >= 30) showRatingOverlay();
 }
 
 function applyTracks() {
@@ -639,10 +998,7 @@ function applyTracks() {
 }
 
 async function ensureLocalStream() {
-  if (state.stream) {
-    applyTracks();
-    return true;
-  }
+  if (state.stream) { applyTracks(); return true; }
   if (!navigator.mediaDevices?.getUserMedia) {
     setText(els.localFallback, "Camera preview needs a browser with media access.");
     return false;
@@ -668,12 +1024,10 @@ function createPeerConnection(peerId) {
   resetPeer();
   const pc = new RTCPeerConnection(rtcConfig);
   state.peerConnection = pc;
-
   pc.onicecandidate = (event) => {
     if (!event.candidate || !state.socket || !peerId) return;
     state.socket.emit("webrtc-ice-candidate", { to: peerId, candidate: event.candidate });
   };
-
   pc.ontrack = (event) => {
     const [remoteStream] = event.streams;
     if (remoteStream && els.remoteVideo) {
@@ -682,10 +1036,11 @@ function createPeerConnection(peerId) {
       setText(els.matchDescription, "Live video connected.");
     }
   };
-
   if (state.stream) state.stream.getTracks().forEach((track) => pc.addTrack(track, state.stream));
   return pc;
 }
+
+// ── Socket Connection ─────────────────────────────────────────────────────────
 
 async function connectSocketIfNeeded() {
   if (state.socket) return true;
@@ -708,14 +1063,21 @@ async function connectSocketIfNeeded() {
     addMessage("System", "Connected to live server.");
     maybePushProfileStats(true);
     socket.emit("leaderboard-get");
+    socket.emit("get-online-count");
   });
 
   socket.on("disconnect", () => {
+    stopCallTimer();
     clearMatch("Server disconnected");
     state.partyRoomCode = "";
     state.partyMembers = [];
     renderPartyState();
     addMessage("System", "Connection dropped. Reconnecting automatically...");
+  });
+
+  socket.on("online-count", (payload = {}) => {
+    const n = Number(payload.count) || 0;
+    if (els.onlineCount) els.onlineCount.textContent = `${n.toLocaleString()} online`;
   });
 
   socket.on("queued", (payload) => {
@@ -731,13 +1093,19 @@ async function connectSocketIfNeeded() {
     state.currentRoomId = payload.roomId;
     state.incomingFriendRequest = null;
     setHidden(els.acceptFriend, true);
+    setHidden(els.typingIndicator, true);
     if (isNewRoom && state.profile) {
       state.profile.matchesCompleted = (state.profile.matchesCompleted || 0) + 1;
       state.profile.dailyMatches = (state.profile.dailyMatches || 0) + 1;
       state.profile.weeklyMatches = (state.profile.weeklyMatches || 0) + 1;
+      const hour = new Date().getHours();
+      if (hour >= 23 || hour < 4) state.profile.nightOwl = true;
       saveProfile();
       renderProfile();
+      playSound("match");
+      startCallTimer();
       awardXp(22);
+      updateMissionProgress("dailyMatchCount", 1);
       if (state.profile.dailyMatches >= 3 && state.profile.challengeAnnouncedDay !== getLocalDayKey()) {
         state.profile.challengeAnnouncedDay = getLocalDayKey();
         saveProfile();
@@ -751,7 +1119,8 @@ async function connectSocketIfNeeded() {
     }
     setText(els.queueStatus, "Connected");
     setText(els.matchHeadline, "Matched with a stranger");
-    setText(els.matchQuality, "Random match");
+    const interestList = (state.profile?.interests || []).join(", ");
+    setText(els.matchQuality, interestList ? `Interests: ${interestList}` : "Random match");
     addMessage("System", "You are connected. Keep the conversation respectful.");
     const mediaReady = await ensureLocalStream();
     if (!mediaReady) return;
@@ -769,6 +1138,16 @@ async function connectSocketIfNeeded() {
   socket.on("chat-message", (payload) => {
     const mine = payload.from === socket.id;
     addMessage(mine ? "You" : "Stranger", payload.text, mine ? "outgoing" : "incoming");
+    if (!mine) playSound("message");
+  });
+
+  socket.on("typing", () => {
+    if (!els.typingIndicator) return;
+    els.typingIndicator.hidden = false;
+    clearTimeout(state.typingDisplayTimeout);
+    state.typingDisplayTimeout = setTimeout(() => {
+      if (els.typingIndicator) els.typingIndicator.hidden = true;
+    }, 2000);
   });
 
   socket.on("peer-left", () => {
@@ -789,6 +1168,7 @@ async function connectSocketIfNeeded() {
     setText(els.acceptFriend, `Accept request from ${payload.fromUser?.name || "User"}`);
     setHidden(els.acceptFriend, false);
     addMessage("System", `${payload.fromUser?.name || "Someone"} sent you a friend request.`);
+    playSound("message");
   });
 
   socket.on("friend-accepted", (payload = {}) => {
@@ -810,19 +1190,15 @@ async function connectSocketIfNeeded() {
 
   socket.on("party-message", (payload = {}) => {
     addMessage(`Party · ${payload.fromName || "Member"}`, payload.text || "");
+    playSound("message");
   });
 
   socket.on("party-error", (payload = {}) => {
     addMessage("System", payload.message || "Party action failed.");
   });
 
-  socket.on("leaderboard-data", (payload = {}) => {
-    renderLeaderboard(payload.items || []);
-  });
-
-  socket.on("leaderboard-update", (payload = {}) => {
-    renderLeaderboard(payload.items || []);
-  });
+  socket.on("leaderboard-data", (payload = {}) => { renderLeaderboard(payload.items || []); });
+  socket.on("leaderboard-update", (payload = {}) => { renderLeaderboard(payload.items || []); });
 
   socket.on("webrtc-offer", async (payload) => {
     const mediaReady = await ensureLocalStream();
@@ -843,13 +1219,13 @@ async function connectSocketIfNeeded() {
     if (!state.peerConnection) return;
     try {
       await state.peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
-    } catch (error) {
-      // Ignore candidate timing issues.
-    }
+    } catch (error) {}
   });
 
   return true;
 }
+
+// ── Actions ───────────────────────────────────────────────────────────────────
 
 async function requestMatch(useNext = false) {
   if (!ensureAuthenticated("start chat")) return;
@@ -857,6 +1233,7 @@ async function requestMatch(useNext = false) {
   if (!connected || !state.socket) return;
   await ensureLocalStream();
   if (useNext || state.currentRoomId) {
+    stopCallTimer();
     state.socket.emit("next-match", currentMatchOptions());
     clearMatch("Searching for next match");
     return;
@@ -876,6 +1253,14 @@ async function sendChat() {
   state.socket.emit("chat-message", { text });
   els.chatInput.value = "";
   awardXp(3);
+  updateMissionProgress("dailyMessages", 1);
+}
+
+function emitTyping() {
+  if (!state.socket || !state.currentRoomId || !state.currentPeerId) return;
+  if (state.typingEmitTimeout) return;
+  state.socket.emit("typing", { to: state.currentPeerId });
+  state.typingEmitTimeout = setTimeout(() => { state.typingEmitTimeout = null; }, 1000);
 }
 
 async function sendPromptToChat() {
@@ -890,6 +1275,22 @@ async function sendPromptToChat() {
     saveProfile();
   }
   awardXp(4);
+  updateMissionProgress("dailyPrompts", 1);
+}
+
+function sendReaction(emoji) {
+  if (!state.currentRoomId || !state.socket) {
+    addMessage("System", "Start a match first.");
+    return;
+  }
+  state.socket.emit("chat-message", { text: emoji });
+  if (state.profile) {
+    state.profile.reactionsUsed = (state.profile.reactionsUsed || 0) + 1;
+    saveProfile();
+  }
+  awardXp(1);
+  updateMissionProgress("dailyReactions", 1);
+  checkAchievements();
 }
 
 async function sendFriendRequest() {
@@ -928,17 +1329,12 @@ async function joinPartyRoom() {
   const connected = await connectSocketIfNeeded();
   if (!connected || !state.socket) return;
   const code = String(els.partyCode?.value || "").trim().toUpperCase();
-  if (!code) {
-    addMessage("System", "Enter a room code to join.");
-    return;
-  }
+  if (!code) { addMessage("System", "Enter a room code to join."); return; }
   state.socket.emit("party-join", { code });
 }
 
 function leavePartyRoom() {
-  if (state.socket && state.partyRoomCode) {
-    state.socket.emit("party-leave");
-  }
+  if (state.socket && state.partyRoomCode) state.socket.emit("party-leave");
   state.partyRoomCode = "";
   state.partyMembers = [];
   renderPartyState();
@@ -954,7 +1350,10 @@ function sendPartyMessage() {
   state.socket.emit("party-message", { text });
   els.partyInput.value = "";
   awardXp(2);
+  updateMissionProgress("dailyPartyMsgs", 1);
 }
+
+// ── Event Listeners ───────────────────────────────────────────────────────────
 
 if (els.preview) els.preview.addEventListener("click", async () => {
   if (!ensureAuthenticated("enable camera")) return;
@@ -977,6 +1376,8 @@ if (els.refreshBoard) els.refreshBoard.addEventListener("click", async () => {
 });
 if (els.mute) els.mute.addEventListener("click", () => { state.localMuted = !state.localMuted; applyTracks(); });
 if (els.camera) els.camera.addEventListener("click", () => { state.cameraOff = !state.cameraOff; applyTracks(); });
+if (els.darkModeBtn) els.darkModeBtn.addEventListener("click", toggleDarkMode);
+if (els.prestigeButton) els.prestigeButton.addEventListener("click", doPrestige);
 if (els.guard) els.guard.addEventListener("click", () => {
   if (!state.profile) return;
   state.profile.safetyGuard = !state.profile.safetyGuard;
@@ -995,31 +1396,54 @@ if (els.report) els.report.addEventListener("click", () => {
   state.socket.emit("next-match", currentMatchOptions());
   clearMatch("Reported and skipped");
 });
-if (els.chatInput) els.chatInput.addEventListener("keydown", (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") void sendChat();
-});
+if (els.chatInput) {
+  els.chatInput.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") void sendChat();
+    else emitTyping();
+  });
+}
 if (els.partyInput) els.partyInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    sendPartyMessage();
-  }
+  if (event.key === "Enter") { event.preventDefault(); sendPartyMessage(); }
 });
 
+// Emoji reaction buttons
+if (els.emojiReactions) {
+  els.emojiReactions.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-emoji]");
+    if (btn) sendReaction(btn.dataset.emoji);
+  });
+}
+
+// Rating overlay stars
+if (els.ratingOverlay) {
+  els.ratingOverlay.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-stars]");
+    if (btn) submitRating(Number(btn.dataset.stars));
+    if (event.target.id === "skipRatingButton") dismissRatingOverlay();
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
 state.backendUrl = resolveBackendUrl();
+initDarkMode();
 loadProfile();
 renderProfile();
+renderInterestTags();
+renderAvatarSelector();
 nextPrompt();
 renderLeaderboard([]);
 renderPartyState();
 setDisconnectedUI("Ready");
 applyTracks();
-console.info("YapTalks build", "2026-04-12-v2");
+console.info("YapTalks build", "2026-05-09-v3");
 
 window.addEventListener("beforeunload", () => {
   if (state.socket && state.currentRoomId) state.socket.emit("leave-match", { reason: "tab-close" });
   if (state.socket && state.partyRoomCode) state.socket.emit("party-leave");
   if (state.socket) state.socket.disconnect();
   if (state.stream) state.stream.getTracks().forEach((track) => track.stop());
+  stopCallTimer();
 });
 
 window.addEventListener("yaptalks-auth-changed", (event) => {
@@ -1027,20 +1451,15 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
   state.authReady = true;
   state.isAuthenticated = Boolean(detail.isAuthenticated);
   if (!state.isAuthenticated) {
+    stopCallTimer();
     clearMatch("Logged out");
     leavePartyRoom();
-    if (state.socket) {
-      state.socket.disconnect();
-      state.socket = null;
-    }
-    if (state.stream) {
-      state.stream.getTracks().forEach((track) => track.stop());
-      state.stream = null;
-    }
+    if (state.socket) { state.socket.disconnect(); state.socket = null; }
+    if (state.stream) { state.stream.getTracks().forEach((track) => track.stop()); state.stream = null; }
     if (els.localVideo) els.localVideo.srcObject = null;
     setHidden(els.localFallback, false);
     setText(els.preview, "Enable camera preview");
     return;
   }
-  addMessage("System", "Login successful. Hype profile v2 is active.");
+  addMessage("System", "Login successful. YapTalks v3 is active.");
 });

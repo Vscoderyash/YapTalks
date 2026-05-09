@@ -770,6 +770,68 @@ h3 {
   font-size: 0.84rem;
 }
 
+/* ── Dark Mode ─────────────────────────────────────────────────────────────── */
+
+body.dark-mode {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-soft: #162032;
+  --ink: #e2e8f0;
+  --muted: #94a3b8;
+  --line: #334155;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+
+body.dark-mode .seo-points span,
+body.dark-mode .policy-meta span {
+  color: #93c5fd;
+}
+
+body.dark-mode .ghost-button {
+  background: #1e293b;
+  color: var(--ink);
+}
+
+body.dark-mode .secondary-button {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+body.dark-mode .field input,
+body.dark-mode .chat-composer textarea,
+body.dark-mode .party-composer input {
+  background: #1e293b;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+body.dark-mode .message {
+  background: #1e293b;
+}
+
+body.dark-mode .message.outgoing {
+  background: #0c2a45;
+  border-color: #1e4a7a;
+}
+
+body.dark-mode .prompt-card {
+  background: #0f2040;
+  border-color: #1e3a6e;
+  color: #93c5fd;
+}
+
+body.dark-mode .hype-grid div {
+  background: #1e293b;
+}
+
+body.dark-mode .xp-bar {
+  background: #1e3a5f;
+}
+
+body.dark-mode .video-stack {
+  background: linear-gradient(135deg, #040d1a, #0f172a 60%, #071220);
+}
+
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(62, 199, 152, 0.36);
@@ -920,4 +982,328 @@ h3 {
     width: 100px;
     height: 134px;
   }
+}
+
+/* ── Online Count ─────────────────────────────────────────────────────────── */
+
+.online-count {
+  background: #e7fff7;
+  border-color: #7fdec1;
+  color: #0f6a55;
+}
+
+/* ── Call Timer ───────────────────────────────────────────────────────────── */
+
+.stage-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.call-timer-badge {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────────────── */
+
+.streak-head-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avatar-display {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.avatar-selector {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.avatar-option {
+  font-size: 1.3rem;
+  padding: 6px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.avatar-option:hover {
+  transform: scale(1.15);
+}
+
+.avatar-option.selected {
+  border-color: var(--primary);
+  background: #e7fff7;
+}
+
+/* ── Interest Tags ────────────────────────────────────────────────────────── */
+
+.muted-tag {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.interest-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.interest-tag {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.interest-tag.active {
+  background: #e7fff7;
+  border-color: #7fdec1;
+  color: #0f6a55;
+  font-weight: 600;
+}
+
+.interest-tag:hover:not(.active) {
+  background: #f0f4ff;
+  border-color: #a5b4fc;
+  color: #3730a3;
+}
+
+/* ── Prestige ─────────────────────────────────────────────────────────────── */
+
+.prestige-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f59e0b;
+  min-height: 0;
+}
+
+.prestige-btn {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.prestige-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* ── Daily Missions ───────────────────────────────────────────────────────── */
+
+.missions-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mission-row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 9px 10px;
+  display: grid;
+  gap: 5px;
+}
+
+body.dark-mode .mission-row {
+  background: #1e293b;
+}
+
+.mission-row.done {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+body.dark-mode .mission-row.done {
+  background: #0d2a1a;
+  border-color: #166534;
+}
+
+.mission-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.mission-label {
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+
+.mission-row.done .mission-label {
+  color: #15803d;
+}
+
+.mission-reward {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.mission-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: #dbeafe;
+  overflow: hidden;
+}
+
+.mission-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #34c38f);
+  transition: width 0.3s ease;
+}
+
+.mission-row.done .mission-bar {
+  background: #bbf7d0;
+}
+
+.mission-row.done .mission-bar span {
+  background: #16a34a;
+}
+
+.mission-prog {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ── Typing Indicator ────────────────────────────────────────────────────── */
+
+.typing-indicator {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
+  padding: 4px 2px;
+}
+
+/* ── Emoji Reactions ─────────────────────────────────────────────────────── */
+
+.emoji-reactions {
+  display: flex;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.emoji-btn {
+  font-size: 1.15rem;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  line-height: 1;
+}
+
+.emoji-btn:hover {
+  transform: scale(1.2);
+  background: #f0f4ff;
+}
+
+/* ── Match Rating Overlay ────────────────────────────────────────────────── */
+
+.rating-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.rating-overlay[hidden] {
+  display: none;
+}
+
+.rating-card {
+  width: min(400px, 100%);
+  padding: 28px;
+  text-align: center;
+  display: grid;
+  gap: 14px;
+}
+
+.rating-card h2 {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+}
+
+.rating-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.star-btn {
+  font-size: 2.2rem;
+  color: #d1d5db;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.star-btn:hover,
+.star-btn:focus {
+  color: #f59e0b;
+  transform: scale(1.2);
+}
+
+.rating-stars:hover .star-btn {
+  color: #f59e0b;
+}
+
+.rating-stars .star-btn:hover ~ .star-btn {
+  color: #d1d5db;
+}
+
+/* ── Confetti Canvas ─────────────────────────────────────────────────────── */
+
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 300;
 }
