@@ -65,6 +65,29 @@
   </script>
 </head>
 <body>
+
+  <!-- ── Splash Screen ─────────────────────────────────────────────────────── -->
+  <div id="splash" class="splash">
+    <div class="splash-bg"></div>
+    <div class="splash-inner">
+      <div class="splash-mark">YT</div>
+      <h1 class="splash-title">YapTalks</h1>
+      <p class="splash-sub">Random video chat, reinvented.</p>
+      <div class="splash-features">
+        <span>Interest Matching</span>
+        <span>XP &amp; Ranks</span>
+        <span>Party Rooms</span>
+      </div>
+      <div class="splash-bar-wrap">
+        <div class="splash-bar"><span id="splashBarFill"></span></div>
+        <span class="splash-loading-text">Loading...</span>
+      </div>
+    </div>
+    <div class="splash-orb splash-orb-1"></div>
+    <div class="splash-orb splash-orb-2"></div>
+    <div class="splash-orb splash-orb-3"></div>
+  </div>
+
   <div class="page-shell">
     <header class="topbar">
       <a class="brand" href="#app">
@@ -287,7 +310,7 @@
               </div>
             </div>
 
-            <div class="video-stack">
+            <div class="video-stack" id="videoStack">
               <div class="remote-stage">
                 <video id="remoteVideo" autoplay playsinline></video>
                 <div class="remote-overlay" id="remoteOverlay">

@@ -156,6 +156,7 @@ const els = {
   prestigeButton: byId("prestigeButton"),
   prestigeCount: byId("prestigeCount"),
   emojiReactions: byId("emojiReactions"),
+  videoStack: byId("videoStack"),
 };
 
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
@@ -986,6 +987,7 @@ function clearMatch(reason) {
   setHidden(els.acceptFriend, true);
   setHidden(els.typingIndicator, true);
   clearTimeout(state.typingDisplayTimeout);
+  if (els.videoStack) els.videoStack.classList.remove("is-live");
   resetPeer();
   clearRemoteMedia();
   setDisconnectedUI(reason);
@@ -1105,6 +1107,7 @@ async function connectSocketIfNeeded() {
     state.incomingFriendRequest = null;
     setHidden(els.acceptFriend, true);
     setHidden(els.typingIndicator, true);
+    if (els.videoStack) els.videoStack.classList.add("is-live");
     if (isNewRoom && state.profile) {
       state.profile.matchesCompleted = (state.profile.matchesCompleted || 0) + 1;
       state.profile.dailyMatches = (state.profile.dailyMatches || 0) + 1;
@@ -1444,6 +1447,41 @@ if (els.ratingOverlay) {
   });
 }
 
+// ── Splash Screen ─────────────────────────────────────────────────────────────
+
+function runSplash(onDone) {
+  const splash = document.getElementById("splash");
+  const fill = document.getElementById("splashBarFill");
+  if (!splash) { onDone(); return; }
+
+  let pct = 0;
+  const steps = [
+    { to: 30,  delay: 120 },
+    { to: 55,  delay: 200 },
+    { to: 75,  delay: 180 },
+    { to: 88,  delay: 250 },
+    { to: 100, delay: 160 },
+  ];
+
+  function runStep(i) {
+    if (i >= steps.length) {
+      setTimeout(() => {
+        splash.classList.add("splash-done");
+        setTimeout(onDone, 700);
+      }, 280);
+      return;
+    }
+    const s = steps[i];
+    setTimeout(() => {
+      pct = s.to;
+      if (fill) fill.style.width = pct + "%";
+      runStep(i + 1);
+    }, s.delay);
+  }
+
+  runStep(0);
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 state.backendUrl = resolveBackendUrl();
@@ -1460,6 +1498,8 @@ setLocalStageVisible(false);
 setLocalFallback("", false);
 applyTracks();
 console.info("YapTalks build", "2026-05-09-v3");
+
+runSplash(() => {});
 
 window.addEventListener("beforeunload", () => {
   if (state.socket && state.currentRoomId) state.socket.emit("leave-match", { reason: "tab-close" });
