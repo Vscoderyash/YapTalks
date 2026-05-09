@@ -59,6 +59,7 @@ const els = {
   report: byId("reportButton"),
   chatInput: byId("chatInput"),
   chatFeed: byId("chatFeed"),
+  localStage: byId("localStage"),
   localVideo: byId("localVideo"),
   remoteVideo: byId("remoteVideo"),
   remoteOverlay: byId("remoteOverlay"),
@@ -109,6 +110,14 @@ function setText(el, text) {
 }
 function setHidden(el, hidden) {
   if (el) el.hidden = hidden;
+}
+function setLocalFallback(message = "", shouldShow = false) {
+  if (!els.localFallback) return;
+  els.localFallback.textContent = message;
+  setHidden(els.localFallback, !shouldShow);
+}
+function setLocalStageVisible(shouldShow) {
+  setHidden(els.localStage, !shouldShow);
 }
 function addMessage(author, text, type = "incoming") {
   if (!els.chatFeed) return;
@@ -641,24 +650,28 @@ function applyTracks() {
 async function ensureLocalStream() {
   if (state.stream) {
     applyTracks();
+    setLocalStageVisible(true);
+    setLocalFallback("", false);
     return true;
   }
   if (!navigator.mediaDevices?.getUserMedia) {
-    setText(els.localFallback, "Camera preview needs a browser with media access.");
+    setLocalStageVisible(true);
+    setLocalFallback("Camera preview needs a browser with media access.", true);
     return false;
   }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
     state.stream = stream;
     if (els.localVideo) els.localVideo.srcObject = stream;
-    setHidden(els.localFallback, true);
-    setText(els.preview, "Camera preview ready");
+    setLocalStageVisible(true);
+    setLocalFallback("", false);
+    setText(els.preview, "Camera ready");
     applyTracks();
     addMessage("System", "Camera and microphone are ready.");
     return true;
   } catch (error) {
-    setHidden(els.localFallback, false);
-    setText(els.localFallback, "Camera or microphone access was blocked.");
+    setLocalStageVisible(true);
+    setLocalFallback("Camera or microphone access was blocked.", true);
     addMessage("System", "Camera/microphone permission was denied.");
     return false;
   }
@@ -1004,6 +1017,16 @@ if (els.partyInput) els.partyInput.addEventListener("keydown", (event) => {
     sendPartyMessage();
   }
 });
+if (els.localVideo) {
+  els.localVideo.addEventListener("loadeddata", () => {
+    setLocalStageVisible(true);
+    setLocalFallback("", false);
+  });
+  els.localVideo.addEventListener("playing", () => {
+    setLocalStageVisible(true);
+    setLocalFallback("", false);
+  });
+}
 
 state.backendUrl = resolveBackendUrl();
 loadProfile();
@@ -1012,6 +1035,8 @@ nextPrompt();
 renderLeaderboard([]);
 renderPartyState();
 setDisconnectedUI("Ready");
+setLocalStageVisible(false);
+setLocalFallback("", false);
 applyTracks();
 console.info("YapTalks build", "2026-04-12-v2");
 
@@ -1038,8 +1063,9 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
       state.stream = null;
     }
     if (els.localVideo) els.localVideo.srcObject = null;
-    setHidden(els.localFallback, false);
-    setText(els.preview, "Enable camera preview");
+    setLocalStageVisible(false);
+    setLocalFallback("", false);
+    setText(els.preview, "Enable camera");
     return;
   }
   addMessage("System", "Login successful. Hype profile v2 is active.");
