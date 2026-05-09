@@ -137,6 +137,10 @@
                 <span class="eyebrow">Yap Streak</span>
                 <strong id="streakValue">1 day</strong>
               </div>
+              <div class="rank-row">
+                <span class="rank-badge" id="rankBadge">Newcomer</span>
+                <span id="xpMultiplier" class="xp-boost-badge" hidden>1x streak boost</span>
+              </div>
               <div class="hype-grid">
                 <div>
                   <span>Level</span>
@@ -150,7 +154,9 @@
               <div class="xp-bar">
                 <span id="xpBarFill"></span>
               </div>
-              <p id="challengeStatus">Daily goal: complete 3 matches.</p>
+              <p class="xp-progress-text" id="xpProgress">0 / 100 XP to next level</p>
+              <p id="challengeStatus">Daily: 3 matches for +30 XP.</p>
+              <p id="weeklyChallenge">Weekly: 15 matches for +100 XP.</p>
             </div>
 
             <div class="hype-card">
@@ -181,6 +187,14 @@
                 </div>
               </div>
               <button class="secondary-button wide" id="safetyGuardButton" type="button">Safety Guard: ON</button>
+            </div>
+
+            <div class="hype-card">
+              <div class="hype-head">
+                <span class="eyebrow">Achievements</span>
+                <strong id="achievementsCount">0 / 8</strong>
+              </div>
+              <div class="achievements-list" id="achievementsList"></div>
             </div>
 
             <div class="hype-card">
