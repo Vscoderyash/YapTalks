@@ -114,7 +114,7 @@
             <h3>Match Setup</h3>
 
             <div class="action-stack">
-              <button class="secondary-button wide" id="previewButton" type="button">Enable camera preview</button>
+              <button class="secondary-button wide" id="previewButton" type="button">Enable camera</button>
               <button class="primary-button wide" id="findMatchButton" type="button">Find match</button>
               <button class="ghost-button wide" id="nextMatchButton" type="button">Next match</button>
             </div>
@@ -291,14 +291,13 @@
               <div class="remote-stage">
                 <video id="remoteVideo" autoplay playsinline></video>
                 <div class="remote-overlay" id="remoteOverlay">
-                  <div class="remote-orb"></div>
                   <p id="matchDescription">Press "Find match" to start chatting.</p>
                 </div>
               </div>
 
-              <div class="local-stage">
+              <div class="local-stage" id="localStage" hidden>
                 <video id="localVideo" autoplay playsinline muted></video>
-                <div class="local-fallback" id="localFallback">Camera preview off</div>
+                <div class="local-fallback" id="localFallback" hidden></div>
               </div>
             </div>
 
