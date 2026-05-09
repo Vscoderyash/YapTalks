@@ -134,23 +134,8 @@
 
         <div class="app-grid" id="app">
           <aside class="panel control-panel">
-            <h3>Match Setup</h3>
-
-            <div class="action-stack">
-              <button class="secondary-button wide" id="previewButton" type="button">Enable camera</button>
-              <button class="primary-button wide" id="findMatchButton" type="button">Find match</button>
-              <button class="ghost-button wide" id="nextMatchButton" type="button">Next match</button>
-            </div>
-
-            <div class="mini-stats">
-              <div>
-                <span>Queue status</span>
-                <strong id="queueStatus">Idle</strong>
-              </div>
-              <div>
-                <span>Match quality</span>
-                <strong id="matchQuality">Ready</strong>
-              </div>
+            <div class="sidebar-header">
+              <span class="eyebrow">My Profile</span>
             </div>
 
             <!-- Interests -->
@@ -299,47 +284,75 @@
           </aside>
 
           <section class="panel video-stage">
-            <div class="stage-topbar">
-              <div>
-                <span class="stage-label">Live call</span>
-                <h3 id="matchHeadline">No active match</h3>
-              </div>
-              <div class="stage-topbar-right">
-                <span class="call-timer-badge" id="callTimer">0:00</span>
-                <span class="badge">Live</span>
-              </div>
-            </div>
 
             <div class="video-stack" id="videoStack">
+
+              <!-- Full-fill remote video -->
               <div class="remote-stage">
                 <video id="remoteVideo" autoplay playsinline></video>
-                <div class="remote-overlay" id="remoteOverlay">
-                  <p id="matchDescription">Press "Find match" to start chatting.</p>
+              </div>
+
+              <!-- HUD: top bar -->
+              <div class="video-hud-top">
+                <div class="video-match-chip">
+                  <span class="video-live-dot"></span>
+                  <span class="video-match-label" id="matchHeadline">No active match</span>
+                </div>
+                <div class="video-hud-right">
+                  <span class="video-quality-tag" id="matchQuality">Ready</span>
+                  <span class="video-timer-pill" id="callTimer">0:00</span>
                 </div>
               </div>
 
+              <!-- Idle overlay — hidden when call is live -->
+              <div class="video-idle-overlay" id="remoteOverlay">
+                <div class="video-idle-card">
+                  <div class="video-idle-icon">📹</div>
+                  <p id="matchDescription">Press "Find match" to begin.</p>
+                  <span class="video-queue-tag" id="queueStatus">Idle</span>
+                </div>
+              </div>
+
+              <!-- Local PiP -->
               <div class="local-stage" id="localStage" hidden>
                 <video id="localVideo" autoplay playsinline muted></video>
                 <div class="local-fallback" id="localFallback" hidden></div>
               </div>
+
+              <!-- Floating controls bar -->
+              <div class="video-controls-bar">
+                <button class="vc-btn" id="muteButton" type="button">Mute</button>
+                <button class="vc-btn" id="cameraButton" type="button">Camera Off</button>
+                <button class="vc-btn vc-next" id="nextMatchButton" type="button">Next</button>
+                <button class="vc-btn vc-danger" id="reportButton" type="button">Report</button>
+              </div>
             </div>
 
-            <div class="stage-footer">
-              <div class="call-tools">
-                <button id="muteButton" type="button">Mute</button>
-                <button id="cameraButton" type="button">Camera Off</button>
-                <button id="reportButton" type="button">Report</button>
-              </div>
+            <!-- Action bar below video -->
+            <div class="stage-action-bar">
+              <button class="ghost-button" id="previewButton" type="button">Enable camera</button>
+              <button class="primary-button" id="findMatchButton" type="button">Find match</button>
             </div>
           </section>
 
           <aside class="panel chat-panel">
+
             <div class="chat-header">
-              <div>
-                <span class="eyebrow">Chat</span>
-                <h3>Messages</h3>
+              <div class="chat-header-info">
+                <span class="chat-status-dot"></span>
+                <div>
+                  <h3>Live Chat</h3>
+                  <span class="chat-subtitle">Connect to start chatting</span>
+                </div>
               </div>
-              <span class="badge">Live</span>
+              <div class="emoji-reactions" id="emojiReactions">
+                <button class="emoji-btn" data-emoji="😂" type="button">😂</button>
+                <button class="emoji-btn" data-emoji="🔥" type="button">🔥</button>
+                <button class="emoji-btn" data-emoji="❤️" type="button">❤️</button>
+                <button class="emoji-btn" data-emoji="👏" type="button">👏</button>
+                <button class="emoji-btn" data-emoji="😮" type="button">😮</button>
+                <button class="emoji-btn" data-emoji="🎉" type="button">🎉</button>
+              </div>
             </div>
 
             <div class="chat-feed" id="chatFeed">
@@ -349,20 +362,16 @@
               </div>
             </div>
 
-            <div class="typing-indicator" id="typingIndicator" hidden>Stranger is typing…</div>
-
-            <div class="emoji-reactions" id="emojiReactions">
-              <button class="emoji-btn" data-emoji="😂" type="button">😂</button>
-              <button class="emoji-btn" data-emoji="🔥" type="button">🔥</button>
-              <button class="emoji-btn" data-emoji="❤️" type="button">❤️</button>
-              <button class="emoji-btn" data-emoji="👏" type="button">👏</button>
-              <button class="emoji-btn" data-emoji="😮" type="button">😮</button>
-              <button class="emoji-btn" data-emoji="🎉" type="button">🎉</button>
+            <div class="typing-indicator" id="typingIndicator" hidden>
+              <span class="typing-dots"><span></span><span></span><span></span></span>
+              Stranger is typing
             </div>
 
             <div class="chat-composer">
-              <textarea id="chatInput" rows="3" placeholder="Type your message... (Ctrl+Enter to send)"></textarea>
-              <button class="primary-button wide" id="sendButton" type="button">Send message</button>
+              <div class="composer-row">
+                <textarea id="chatInput" rows="1" placeholder="Type a message… (Ctrl+Enter)"></textarea>
+                <button class="send-btn" id="sendButton" type="button">&#10148;</button>
+              </div>
             </div>
           </aside>
         </div>
