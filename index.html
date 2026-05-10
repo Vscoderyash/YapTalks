@@ -94,6 +94,15 @@
 </head>
 <body>
 
+  <div class="aurora-bg" aria-hidden="true">
+    <div class="aurora-orb a1"></div>
+    <div class="aurora-orb a2"></div>
+    <div class="aurora-orb a3"></div>
+    <div class="aurora-orb a4"></div>
+  </div>
+  <div class="noise-layer" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
   <!-- ── Splash Screen ─────────────────────────────────────────────────────── -->
   <div id="splash" class="splash">
     <div class="splash-bg"></div>
@@ -137,27 +146,68 @@
 
     <main>
       <section id="appContent">
-        <section class="seo-hero panel">
-          <span class="eyebrow">Free Omegle Alternative</span>
-          <h1>YapTalks — Free Random Video Chat with Anime Filters, XP Ranks &amp; More</h1>
-          <p>
-            YapTalks is the best free random video chat app and Omegle alternative. Meet strangers via live video call with anime character filters, interest-based matching, XP ranks, party rooms, and real-time text chat — completely free.
+        <!-- SEO content (screen-reader + crawlers) -->
+        <h1 class="seo-only">YapTalks — Free Random Video Chat with Anime Filters, XP Ranks &amp; More</h1>
+
+        <section class="hero-exterior">
+          <div class="hero-badge">
+            <span class="hero-live-dot"></span>
+            <span id="heroOnlineText">Live</span> — Free random video chat
+          </div>
+          <p class="hero-title">
+            <span class="gradient-text">Chat with anyone.</span><br>
+            Anywhere. Instantly.
           </p>
-          <div class="seo-points">
-            <span>Free random video chat</span>
-            <span>Anime character filters</span>
-            <span>Interest-based matching</span>
-            <span>XP ranks &amp; achievements</span>
-            <span>Better than Omegle &amp; Monkey</span>
+          <p class="hero-sub">Anime filters · XP ranks · Interest matching · Party rooms</p>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <strong id="heroStatOnline">···</strong>
+              <span>online now</span>
+            </div>
+            <div class="hero-stat">
+              <strong>Free</strong>
+              <span>always &amp; forever</span>
+            </div>
+            <div class="hero-stat">
+              <strong>9</strong>
+              <span>anime filters</span>
+            </div>
+            <div class="hero-stat">
+              <strong>7</strong>
+              <span>rank tiers</span>
+            </div>
           </div>
         </section>
 
-        <div class="app-header">
-          <div>
-            <span class="eyebrow">Real-time Chat</span>
-            <h2>Professional random chat experience</h2>
+        <div class="feature-strip">
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M3 8h12a2 2 0 012 2v4a2 2 0 01-2 2H3a2 2 0 01-2-2V10a2 2 0 012-2z"/></svg>
+            </div>
+            <h3>Anime Character Filters</h3>
+            <p>Become Naruto, Goku, Gojo or 6 more. Your camera, transformed in real time.</p>
           </div>
-          <p>Pick interests, find a match, and chat instantly.</p>
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h3>XP &amp; Rank System</h3>
+            <p>Earn XP every match. Climb from Newcomer to Legend rank.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <h3>Interest Matching</h3>
+            <p>Pick topics you love. Get matched with people who share your vibe.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <h3>Party Rooms</h3>
+            <p>Create or join rooms with friends. Chat and match together.</p>
+          </div>
         </div>
 
         <div class="app-grid" id="app">
@@ -330,6 +380,13 @@
 
             <div class="video-stack" id="videoStack">
 
+              <!-- Corner bracket decorators -->
+              <span class="vc-corner vc-tl" aria-hidden="true"></span>
+              <span class="vc-corner vc-tr" aria-hidden="true"></span>
+              <span class="vc-corner vc-bl" aria-hidden="true"></span>
+              <span class="vc-corner vc-br" aria-hidden="true"></span>
+              <div class="video-scanlines" aria-hidden="true"></div>
+
               <!-- Full-fill remote video -->
               <div class="remote-stage">
                 <video id="remoteVideo" autoplay playsinline></video>
@@ -430,14 +487,28 @@
     </main>
 
     <footer class="footer">
-      <div>
-        <strong>YapTalks</strong>
-        <p>Secure random video chat and text chat platform.</p>
+      <div class="footer-brand">
+        <span class="footer-logo-mark">YT</span>
+        <div>
+          <strong>YapTalks</strong>
+          <p>Secure random video chat, reinvented.</p>
+        </div>
       </div>
+      <ul class="footer-features">
+        <li>Anime Character Filters</li>
+        <li>XP &amp; Rank System</li>
+        <li>Party Rooms</li>
+        <li>Interest Matching</li>
+        <li>Daily Missions</li>
+        <li>Bot Detection</li>
+      </ul>
       <nav class="footer-links" aria-label="Legal links">
         <a href="/privacy.html">Privacy Policy</a>
       </nav>
-      <span>Made by Yash Raj</span>
+      <div class="footer-credit">
+        <span>Made by <strong>Yash Raj</strong></span>
+        <span class="footer-version-badge">v3.0</span>
+      </div>
     </footer>
   </div>
 
