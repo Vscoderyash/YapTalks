@@ -1796,3 +1796,32 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
   }
   addMessage("System", "Login successful. YapTalks v3 is active.");
 });
+
+// ── Cursor Glow ───────────────────────────────────────────────────────────────
+
+(function initCursorGlow() {
+  const glow = document.getElementById("cursorGlow");
+  if (!glow) return;
+  if (!window.matchMedia("(pointer: fine)").matches) {
+    glow.style.display = "none";
+    return;
+  }
+  document.addEventListener("mousemove", (e) => {
+    glow.style.left = e.clientX + "px";
+    glow.style.top = e.clientY + "px";
+  }, { passive: true });
+})();
+
+// ── Hero Stat Sync (mirrors online count into hero) ───────────────────────────
+
+(function initHeroStatSync() {
+  const heroEl = document.getElementById("heroStatOnline");
+  const sourceEl = document.getElementById("onlineCount");
+  if (!heroEl || !sourceEl) return;
+  const sync = () => {
+    const raw = sourceEl.textContent.trim();
+    heroEl.textContent = raw || "···";
+  };
+  sync();
+  new MutationObserver(sync).observe(sourceEl, { childList: true, characterData: true, subtree: true });
+})();
