@@ -165,9 +165,9 @@
 
             <!-- Sidebar Tabs -->
             <div class="sidebar-tabs">
-              <button class="sidebar-tab active" data-tab="profile" type="button">🎮 Profile</button>
-              <button class="sidebar-tab" data-tab="vibes" type="button">⚡ Vibes</button>
-              <button class="sidebar-tab" data-tab="social" type="button">👥 Social</button>
+              <button class="sidebar-tab active" data-tab="profile" type="button">Profile</button>
+              <button class="sidebar-tab" data-tab="vibes" type="button">Vibes</button>
+              <button class="sidebar-tab" data-tab="social" type="button">Social</button>
             </div>
 
             <!-- ── Profile Tab ───────────────────────────────── -->
@@ -192,7 +192,7 @@
                 <div class="xp-bar"><span id="xpBarFill"></span></div>
                 <p class="xp-progress-text" id="xpProgress">0 / 100 XP to next level</p>
                 <div id="prestigeCount" class="prestige-count"></div>
-                <button id="prestigeButton" class="prestige-btn wide" type="button" hidden>✨ Prestige Now</button>
+                <button id="prestigeButton" class="prestige-btn wide" type="button" hidden>Prestige Now</button>
               </div>
 
               <!-- Challenges -->
@@ -252,7 +252,7 @@
               <!-- Anime Vibes -->
               <div class="hype-card anime-vibes-card">
                 <div class="hype-head">
-                  <span class="eyebrow">⚡ Anime Character</span>
+                  <span class="eyebrow">Anime Character</span>
                   <span class="anime-active-label" id="animeActiveLabel">Off</span>
                 </div>
                 <p class="hype-card-hint">Pick a character — your camera becomes them.</p>
@@ -350,7 +350,11 @@
               <!-- Idle overlay — hidden when call is live -->
               <div class="video-idle-overlay" id="remoteOverlay">
                 <div class="video-idle-card">
-                  <div class="video-idle-icon">📹</div>
+                  <div class="video-idle-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                  </div>
                   <p id="matchDescription">Press "Find match" to begin.</p>
                   <span class="video-queue-tag" id="queueStatus">Idle</span>
                 </div>
@@ -377,7 +381,7 @@
             <!-- Action bar below video -->
             <div class="stage-action-bar">
               <button class="ghost-button" id="previewButton" type="button">Enable camera</button>
-              <button class="ghost-button" id="enhanceButton" type="button">✨ HD</button>
+              <button class="ghost-button" id="enhanceButton" type="button">HD</button>
               <button class="primary-button" id="findMatchButton" type="button">Find match</button>
             </div>
           </section>
