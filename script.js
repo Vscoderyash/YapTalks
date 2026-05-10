@@ -22,6 +22,10 @@ const state = {
   darkMode: false,
   animeChar: "none",
   videoEnhance: false,
+  filterCanvas: null,
+  filterCtx: null,
+  filteredStream: null,
+  filterAnimFrame: null,
 };
 
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
@@ -1042,6 +1046,10 @@ async function ensureLocalStream() {
     setLocalStageVisible(true);
     setLocalFallback("", false);
     setText(els.preview, "Camera ready");
+    if (state.animeChar !== "none") {
+      const char = ANIME_CHARS.find((c) => c.id === state.animeChar);
+      if (char) startCanvasFilterLoop(char.filter);
+    }
     applyTracks();
     addMessage("System", "Camera and microphone are ready.");
     return true;
@@ -1069,7 +1077,10 @@ function createPeerConnection(peerId) {
       setText(els.matchDescription, "Live video connected.");
     }
   };
-  if (state.stream) state.stream.getTracks().forEach((track) => pc.addTrack(track, state.stream));
+  if (state.stream) {
+    const streamToSend = (state.animeChar !== "none" && state.filteredStream) ? state.filteredStream : state.stream;
+    streamToSend.getTracks().forEach((track) => pc.addTrack(track, streamToSend));
+  }
   return pc;
 }
 
@@ -1548,10 +1559,76 @@ function renderAnimeCharPicker() {
   });
 }
 
+// ── Canvas Filter (bakes CSS filters into video stream sent via WebRTC) ───────
+
+function stopCanvasFilterLoop() {
+  if (state.filterAnimFrame) {
+    cancelAnimationFrame(state.filterAnimFrame);
+    state.filterAnimFrame = null;
+  }
+}
+
+function startCanvasFilterLoop(cssFilter) {
+  stopCanvasFilterLoop();
+  if (!els.localVideo) return;
+
+  if (!state.filterCanvas) {
+    state.filterCanvas = document.createElement("canvas");
+    state.filterCanvas.width = 640;
+    state.filterCanvas.height = 480;
+    state.filterCtx = state.filterCanvas.getContext("2d");
+  }
+
+  const ctx = state.filterCtx;
+  const canvas = state.filterCanvas;
+
+  function draw() {
+    if (!els.localVideo || els.localVideo.readyState < 2) {
+      state.filterAnimFrame = requestAnimationFrame(draw);
+      return;
+    }
+    ctx.filter = cssFilter;
+    ctx.drawImage(els.localVideo, 0, 0, canvas.width, canvas.height);
+    state.filterAnimFrame = requestAnimationFrame(draw);
+  }
+
+  state.filteredStream = canvas.captureStream(30);
+  if (state.stream) {
+    const audioTracks = state.stream.getAudioTracks();
+    audioTracks.forEach((t) => state.filteredStream.addTrack(t));
+  }
+
+  draw();
+}
+
+function replaceRTCVideoTrack(newVideoTrack) {
+  if (!state.peerConnection || !newVideoTrack) return;
+  const senders = state.peerConnection.getSenders();
+  const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+  if (videoSender) videoSender.replaceTrack(newVideoTrack);
+}
+
 function applyAnimeFilter(charId) {
   state.animeChar = charId;
   const char = ANIME_CHARS.find((c) => c.id === charId) || ANIME_CHARS[0];
-  if (els.localVideo) els.localVideo.style.filter = char.filter === "none" ? "" : char.filter;
+
+  if (char.id === "none") {
+    stopCanvasFilterLoop();
+    state.filteredStream = null;
+    if (els.localVideo) els.localVideo.style.filter = "";
+    if (state.stream) {
+      const rawVideo = state.stream.getVideoTracks()[0];
+      replaceRTCVideoTrack(rawVideo);
+    }
+  } else {
+    startCanvasFilterLoop(char.filter);
+    if (els.localVideo) els.localVideo.style.filter = "";
+    if (state.filteredStream) {
+      const canvasVideo = state.filteredStream.getVideoTracks()[0];
+      replaceRTCVideoTrack(canvasVideo);
+    }
+  }
+
   if (els.localStage) {
     els.localStage.style.boxShadow = char.id === "none" ? "" : `0 0 0 3px ${char.color}, 0 0 20px ${char.color}55`;
   }
@@ -1604,6 +1681,23 @@ function showMatchFlash() {
   setTimeout(() => el.remove(), 900);
 }
 
+// ── Sidebar Tabs ──────────────────────────────────────────────────────────────
+
+function initSidebarTabs() {
+  const tabs = document.querySelectorAll(".sidebar-tab");
+  const panels = document.querySelectorAll(".tab-panel");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      panels.forEach((p) => p.setAttribute("hidden", ""));
+      tab.classList.add("active");
+      const target = tab.dataset.tab;
+      const panel = document.querySelector(`.tab-panel[data-panel="${target}"]`);
+      if (panel) panel.removeAttribute("hidden");
+    });
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 state.backendUrl = resolveBackendUrl();
@@ -1623,6 +1717,7 @@ applyTracks();
 console.info("YapTalks build", "2026-05-10-v4");
 
 runSplash(() => {});
+initSidebarTabs();
 
 // Anime picker click delegation
 if (els.animeCharPicker) {
@@ -1665,6 +1760,7 @@ window.addEventListener("beforeunload", () => {
   if (state.socket && state.partyRoomCode) state.socket.emit("party-leave");
   if (state.socket) state.socket.disconnect();
   if (state.stream) state.stream.getTracks().forEach((track) => track.stop());
+  stopCanvasFilterLoop();
   stopCallTimer();
 });
 
