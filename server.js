@@ -25,6 +25,81 @@ const leaderboard = new Map();
 const partyRooms = new Map();
 const memberParty = new Map();
 
+// ─── Security state ────────────────────────────────────────────────────────────
+// socketRates: socketId -> { count: number, windowStart: number }
+const socketRates = new Map();
+// suspicionScores: socketId -> number
+const suspicionScores = new Map();
+// ipConnectionLog: ip -> array of timestamps (ms)
+const ipConnectionLog = new Map();
+
+const RATE_LIMIT_EVENTS_PER_SEC = 25;
+const SUSPICION_BAN_THRESHOLD = 80;
+const IP_CONN_LIMIT_PER_MINUTE = 12;
+
+/**
+ * Returns true if the event is allowed, false if rate-limited.
+ * On rate-limit, adds suspicion (+20) automatically.
+ */
+function checkRate(socketId) {
+  const now = Date.now();
+  let entry = socketRates.get(socketId);
+  if (!entry) {
+    entry = { count: 0, windowStart: now };
+    socketRates.set(socketId, entry);
+  }
+
+  // Reset window if more than 1 second has passed
+  if (now - entry.windowStart >= 1000) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+
+  entry.count += 1;
+
+  if (entry.count > RATE_LIMIT_EVENTS_PER_SEC) {
+    addSuspicion(socketId, 20);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Adds to a socket's suspicion score. If threshold reached, emit security-ban
+ * and disconnect after 500 ms.
+ */
+function addSuspicion(socketId, amount) {
+  const current = suspicionScores.get(socketId) || 0;
+  const updated = current + amount;
+  suspicionScores.set(socketId, updated);
+
+  if (updated >= SUSPICION_BAN_THRESHOLD) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) {
+      socket.emit("security-ban", { reason: "Suspicious activity detected." });
+      setTimeout(() => {
+        const s = io.sockets.sockets.get(socketId);
+        if (s) s.disconnect(true);
+      }, 500);
+    }
+  }
+}
+
+/**
+ * Returns true if this IP is allowed to connect, false if over the limit.
+ */
+function checkIpRate(ip) {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  let timestamps = ipConnectionLog.get(ip) || [];
+  // Prune timestamps outside the rolling minute
+  timestamps = timestamps.filter((t) => now - t < windowMs);
+  timestamps.push(now);
+  ipConnectionLog.set(ip, timestamps);
+  return timestamps.length <= IP_CONN_LIMIT_PER_MINUTE;
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 function sanitizeText(value, fallback = "") {
   if (typeof value !== "string") return fallback;
   return value.trim();
@@ -181,6 +256,21 @@ function enqueueSocket(socket, options) {
 }
 
 io.on("connection", (socket) => {
+  // ── IP connection rate limiting ──────────────────────────────────────────────
+  const ip =
+    sanitizeText(socket.handshake.headers["x-forwarded-for"], "").split(",")[0].trim() ||
+    socket.handshake.address ||
+    "unknown";
+
+  if (!checkIpRate(ip)) {
+    socket.disconnect(true);
+    return;
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Initialise suspicion tracking for this socket
+  suspicionScores.set(socket.id, 0);
+
   const auth = socket.handshake.auth || {};
   const identity = {
     uid: sanitizeText(auth.uid, `guest-${socket.id.slice(0, 8)}`),
@@ -193,27 +283,67 @@ io.on("connection", (socket) => {
   socket.emit("leaderboard-data", { items: topLeaderboard(12) });
 
   socket.on("request-match", (options = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    // Repeated empty/invalid payload
+    if (typeof options !== "object" || options === null) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     enqueueSocket(socket, options);
   });
 
   socket.on("leave-match", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     cleanupMatch(socket.id, sanitizeText(payload.reason, "left"));
   });
 
   socket.on("next-match", (options = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (typeof options !== "object" || options === null) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     cleanupMatch(socket.id, "next");
     enqueueSocket(socket, options);
   });
 
   socket.on("chat-message", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     const active = activeMatches.get(socket.id);
-    if (!active) return;
+    if (!active) {
+      // Message with no active match
+      addSuspicion(socket.id, 8);
+      return;
+    }
+    if (typeof payload !== "object" || payload === null) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     const text = sanitizeText(payload.text, "").slice(0, 500);
-    if (!text) return;
+    if (!text) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     io.to(active.roomId).emit("chat-message", { from: socket.id, text, createdAt: Date.now() });
   });
 
   socket.on("report-user", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     const active = activeMatches.get(socket.id);
     if (!active) return;
 
@@ -230,10 +360,24 @@ io.on("connection", (socket) => {
     if (targetSocket) {
       targetSocket.emit("safety-warning", { count: updatedCount });
     }
+
+    // Auto-action: if reported socket has 5+ reports, cleanupMatch after 2 s
+    if (updatedCount >= 5) {
+      setTimeout(() => {
+        cleanupMatch(reportedSocketId, "removed");
+      }, 2000);
+    }
   });
 
   socket.on("friend-request", (payload = {}) => {
-    if (!payload.to) return;
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (!payload.to) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     const targetSocket = io.sockets.sockets.get(payload.to);
     if (!targetSocket) return;
     const fromUser = payload.fromUser || identity;
@@ -247,7 +391,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("friend-accepted", (payload = {}) => {
-    if (!payload.to) return;
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (!payload.to) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     const targetSocket = io.sockets.sockets.get(payload.to);
     if (!targetSocket) return;
     const fromUser = payload.fromUser || identity;
@@ -261,6 +412,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("party-create", () => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     leaveParty(socket.id);
     const code = createPartyCode();
     partyRooms.set(code, { members: new Set([socket.id]) });
@@ -270,6 +425,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("party-join", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     const code = sanitizeText(payload.code, "").toUpperCase();
     if (!code || !partyRooms.has(code)) {
       socket.emit("party-error", { message: "Room code not found." });
@@ -290,17 +449,28 @@ io.on("connection", (socket) => {
   });
 
   socket.on("party-leave", () => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     leaveParty(socket.id);
   });
 
   socket.on("party-message", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     const code = memberParty.get(socket.id);
     if (!code || !partyRooms.has(code)) {
       socket.emit("party-error", { message: "Join a party room first." });
       return;
     }
     const text = sanitizeText(payload.text, "").slice(0, 220);
-    if (!text) return;
+    if (!text) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     io.to(`party-${code}`).emit("party-message", {
       code,
       fromSocketId: socket.id,
@@ -311,6 +481,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("profile-stats", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (typeof payload !== "object" || payload === null) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     const userId = sanitizeText(payload.userId, identity.uid);
     if (!userId) return;
 
@@ -328,22 +506,75 @@ io.on("connection", (socket) => {
   });
 
   socket.on("leaderboard-get", () => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
     socket.emit("leaderboard-data", { items: topLeaderboard(12) });
   });
 
   socket.on("webrtc-offer", (payload = {}) => {
-    if (!payload.to || !payload.sdp) return;
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (!payload.to || !payload.sdp) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     io.to(payload.to).emit("webrtc-offer", { from: socket.id, sdp: payload.sdp });
   });
 
   socket.on("webrtc-answer", (payload = {}) => {
-    if (!payload.to || !payload.sdp) return;
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (!payload.to || !payload.sdp) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     io.to(payload.to).emit("webrtc-answer", { from: socket.id, sdp: payload.sdp });
   });
 
   socket.on("webrtc-ice-candidate", (payload = {}) => {
-    if (!payload.to || !payload.candidate) return;
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    if (!payload.to || !payload.candidate) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
     io.to(payload.to).emit("webrtc-ice-candidate", { from: socket.id, candidate: payload.candidate });
+  });
+
+  // ── New: anime-theme ─────────────────────────────────────────────────────────
+  socket.on("anime-theme", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    const active = activeMatches.get(socket.id);
+    if (!active) return;
+    if (typeof payload !== "object" || payload === null) {
+      addSuspicion(socket.id, 5);
+      return;
+    }
+    const charId = sanitizeText(payload.charId, "").slice(0, 20);
+    const charName = sanitizeText(payload.charName, "").slice(0, 30);
+    io.to(active.roomId).emit("anime-theme", { from: socket.id, charId, charName });
+  });
+
+  // ── New: typing ──────────────────────────────────────────────────────────────
+  socket.on("typing", () => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    const active = activeMatches.get(socket.id);
+    if (!active) return;
+    io.to(active.roomId).emit("typing", { from: socket.id });
   });
 
   socket.on("disconnect", () => {
@@ -352,6 +583,9 @@ io.on("connection", (socket) => {
     leaveParty(socket.id);
     reportCounts.delete(socket.id);
     userPresence.delete(socket.id);
+    // Clean up security data
+    socketRates.delete(socket.id);
+    suspicionScores.delete(socket.id);
   });
 });
 

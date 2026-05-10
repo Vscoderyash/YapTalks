@@ -20,6 +20,8 @@ const state = {
   typingEmitTimeout: null,
   typingDisplayTimeout: null,
   darkMode: false,
+  animeChar: "none",
+  videoEnhance: false,
 };
 
 const DEPLOYED_BACKEND_URL = "https://yaptalks.onrender.com";
@@ -75,6 +77,19 @@ const ACHIEVEMENTS = [
   { id: "speed_yapper", label: "Speed Yapper", desc: "Complete 5 matches in one day", xpReward: 50, check: (p) => (p.dailyMatches || 0) >= 5 },
   { id: "prestige_1", label: "Prestige", desc: "Reach first prestige", xpReward: 200, check: (p) => (p.prestige || 0) >= 1 },
   { id: "legend_lvl", label: "Legend", desc: "Reach level 41", xpReward: 100, check: (p) => levelFromXp(p.xp || 0) >= 41 },
+];
+
+const ANIME_CHARS = [
+  { id: "none",     name: "Off",      emoji: "🚫", filter: "none",                                                       color: "#64748b" },
+  { id: "naruto",   name: "Naruto",   emoji: "🍃", filter: "saturate(1.5) hue-rotate(12deg) contrast(1.1)",              color: "#f97316" },
+  { id: "goku",     name: "Goku",     emoji: "⚡", filter: "brightness(1.35) saturate(1.7) contrast(1.2)",               color: "#eab308" },
+  { id: "luffy",    name: "Luffy",    emoji: "☠️", filter: "saturate(1.4) hue-rotate(-22deg) brightness(1.1)",           color: "#ef4444" },
+  { id: "levi",     name: "Levi",     emoji: "⚔️", filter: "grayscale(0.5) contrast(1.4) brightness(0.88)",              color: "#94a3b8" },
+  { id: "gojo",     name: "Gojo",     emoji: "🌀", filter: "brightness(1.25) saturate(0.65) hue-rotate(210deg)",         color: "#a78bfa" },
+  { id: "tanjiro",  name: "Tanjiro",  emoji: "🔥", filter: "hue-rotate(-28deg) saturate(1.6) contrast(1.15)",           color: "#22c55e" },
+  { id: "todoroki", name: "Todoroki", emoji: "🧊", filter: "hue-rotate(180deg) saturate(1.4) brightness(1.15)",          color: "#38bdf8" },
+  { id: "saitama",  name: "Saitama",  emoji: "👊", filter: "brightness(1.5) saturate(0.35) contrast(1.35)",             color: "#fbbf24" },
+  { id: "zoro",     name: "Zoro",     emoji: "🗡️", filter: "hue-rotate(92deg) saturate(1.5) contrast(1.2)",             color: "#4ade80" },
 ];
 
 const PROMPTS = [
@@ -157,6 +172,10 @@ const els = {
   prestigeCount: byId("prestigeCount"),
   emojiReactions: byId("emojiReactions"),
   videoStack: byId("videoStack"),
+  animeCharPicker: byId("animeCharPicker"),
+  animeActiveLabel: byId("animeActiveLabel"),
+  enhanceBtn: byId("enhanceButton"),
+  peerAnimeBadge: byId("peerAnimeBadge"),
 };
 
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
@@ -988,6 +1007,7 @@ function clearMatch(reason) {
   setHidden(els.typingIndicator, true);
   clearTimeout(state.typingDisplayTimeout);
   if (els.videoStack) els.videoStack.classList.remove("is-live");
+  if (els.peerAnimeBadge) els.peerAnimeBadge.hidden = true;
   resetPeer();
   clearRemoteMedia();
   setDisconnectedUI(reason);
@@ -1070,6 +1090,23 @@ async function connectSocketIfNeeded() {
   });
   state.socket = socket;
 
+  socket.on("anime-theme", (payload = {}) => {
+    if (payload.from === state.currentPeerId && els.peerAnimeBadge) {
+      const char = ANIME_CHARS.find((c) => c.id === payload.charId);
+      if (!char || char.id === "none") {
+        els.peerAnimeBadge.hidden = true;
+      } else {
+        els.peerAnimeBadge.hidden = false;
+        els.peerAnimeBadge.textContent = `${char.emoji} ${char.name}`;
+        els.peerAnimeBadge.style.setProperty("--char-color", char.color);
+      }
+    }
+  });
+
+  socket.on("security-ban", () => {
+    addMessage("System", "You have been disconnected for unusual activity.");
+  });
+
   socket.on("connect", () => {
     setText(els.queueStatus, "Online");
     setText(els.matchQuality, "Ready to match");
@@ -1108,6 +1145,7 @@ async function connectSocketIfNeeded() {
     setHidden(els.acceptFriend, true);
     setHidden(els.typingIndicator, true);
     if (els.videoStack) els.videoStack.classList.add("is-live");
+    showMatchFlash();
     if (isNewRoom && state.profile) {
       state.profile.matchesCompleted = (state.profile.matchesCompleted || 0) + 1;
       state.profile.dailyMatches = (state.profile.dailyMatches || 0) + 1;
@@ -1482,6 +1520,90 @@ function runSplash(onDone) {
   runStep(0);
 }
 
+// ── Bot Detection ─────────────────────────────────────────────────────────────
+
+let humanScore = 0;
+const incHuman = (n) => { humanScore = Math.min(humanScore + n, 100); };
+document.addEventListener("mousemove", () => incHuman(1), { passive: true });
+document.addEventListener("keydown",   () => incHuman(5), { passive: true });
+document.addEventListener("touchstart",() => incHuman(10), { passive: true });
+document.addEventListener("scroll",    () => incHuman(3), { passive: true });
+function isHuman() { return humanScore >= 8; }
+
+// ── Anime Character System ─────────────────────────────────────────────────────
+
+function renderAnimeCharPicker() {
+  const container = els.animeCharPicker;
+  if (!container) return;
+  container.innerHTML = "";
+  ANIME_CHARS.forEach((char) => {
+    const btn = document.createElement("button");
+    btn.className = "char-btn" + (state.animeChar === char.id ? " active" : "");
+    btn.type = "button";
+    btn.dataset.charId = char.id;
+    btn.title = char.name;
+    btn.innerHTML = `<span class="char-emoji">${char.emoji}</span><span class="char-name">${char.name}</span>`;
+    if (char.id !== "none") btn.style.setProperty("--char-color", char.color);
+    container.appendChild(btn);
+  });
+}
+
+function applyAnimeFilter(charId) {
+  state.animeChar = charId;
+  const char = ANIME_CHARS.find((c) => c.id === charId) || ANIME_CHARS[0];
+  if (els.localVideo) els.localVideo.style.filter = char.filter === "none" ? "" : char.filter;
+  if (els.localStage) {
+    els.localStage.style.boxShadow = char.id === "none" ? "" : `0 0 0 3px ${char.color}, 0 0 20px ${char.color}55`;
+  }
+  if (els.animeActiveLabel) els.animeActiveLabel.textContent = char.id === "none" ? "Off" : `${char.emoji} ${char.name}`;
+  renderAnimeCharPicker();
+  if (state.socket && state.currentRoomId) {
+    state.socket.emit("anime-theme", { charId: char.id, charName: char.name });
+  }
+}
+
+// ── Video Enhancement ──────────────────────────────────────────────────────────
+
+function toggleVideoEnhance() {
+  state.videoEnhance = !state.videoEnhance;
+  if (els.remoteVideo) {
+    els.remoteVideo.style.filter = state.videoEnhance
+      ? "brightness(1.14) contrast(1.09) saturate(1.12)"
+      : "";
+  }
+  if (els.enhanceBtn) {
+    els.enhanceBtn.textContent = state.videoEnhance ? "✨ HD ON" : "✨ HD";
+    els.enhanceBtn.classList.toggle("active-enhance", state.videoEnhance);
+  }
+  if (els.videoStack) els.videoStack.classList.toggle("video-enhanced", state.videoEnhance);
+}
+
+// ── Emoji Burst ────────────────────────────────────────────────────────────────
+
+function emojiBurst(emoji, clientX, clientY) {
+  const count = 6;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("div");
+    el.className = "emoji-burst";
+    el.textContent = emoji;
+    const angle = (360 / count) * i + Math.random() * 30 - 15;
+    const dist = 60 + Math.random() * 50;
+    const rad = (angle * Math.PI) / 180;
+    el.style.cssText = `left:${clientX}px;top:${clientY}px;--dx:${Math.cos(rad) * dist}px;--dy:${Math.sin(rad) * dist}px;animation-delay:${i * 35}ms`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+}
+
+// ── Match Flash ────────────────────────────────────────────────────────────────
+
+function showMatchFlash() {
+  const el = document.createElement("div");
+  el.className = "match-flash";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 state.backendUrl = resolveBackendUrl();
@@ -1490,6 +1612,7 @@ loadProfile();
 renderProfile();
 renderInterestTags();
 renderAvatarSelector();
+renderAnimeCharPicker();
 nextPrompt();
 renderLeaderboard([]);
 renderPartyState();
@@ -1497,9 +1620,45 @@ setDisconnectedUI("Ready");
 setLocalStageVisible(false);
 setLocalFallback("", false);
 applyTracks();
-console.info("YapTalks build", "2026-05-09-v3");
+console.info("YapTalks build", "2026-05-10-v4");
 
 runSplash(() => {});
+
+// Anime picker click delegation
+if (els.animeCharPicker) {
+  els.animeCharPicker.addEventListener("click", (e) => {
+    const btn = e.target.closest(".char-btn");
+    if (!btn) return;
+    applyAnimeFilter(btn.dataset.charId);
+  });
+}
+
+// Video enhance toggle
+if (els.enhanceBtn) {
+  els.enhanceBtn.addEventListener("click", toggleVideoEnhance);
+}
+
+// Emoji burst on reaction click
+if (els.emojiReactions) {
+  els.emojiReactions.addEventListener("click", (e) => {
+    const btn = e.target.closest(".emoji-btn");
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    emojiBurst(btn.dataset.emoji, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  });
+}
+
+// Bot-detection guard on find match
+if (els.find) {
+  const origFind = els.find.onclick;
+  els.find.addEventListener("click", (e) => {
+    if (!isHuman()) {
+      e.stopImmediatePropagation();
+      setText(els.find, "Verifying...");
+      setTimeout(() => setText(els.find, "Find match"), 1200);
+    }
+  }, true);
+}
 
 window.addEventListener("beforeunload", () => {
   if (state.socket && state.currentRoomId) state.socket.emit("leave-match", { reason: "tab-close" });
