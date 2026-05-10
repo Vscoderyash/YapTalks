@@ -162,161 +162,167 @@
 
         <div class="app-grid" id="app">
           <aside class="panel control-panel">
-            <div class="sidebar-header">
-              <span class="eyebrow">My Profile</span>
+
+            <!-- Sidebar Tabs -->
+            <div class="sidebar-tabs">
+              <button class="sidebar-tab active" data-tab="profile" type="button">🎮 Profile</button>
+              <button class="sidebar-tab" data-tab="vibes" type="button">⚡ Vibes</button>
+              <button class="sidebar-tab" data-tab="social" type="button">👥 Social</button>
             </div>
 
-            <!-- Interests -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Your Interests</span>
-                <span class="muted-tag">Pick up to 5</span>
-              </div>
-              <div class="interest-tags" id="interestTags"></div>
-            </div>
+            <!-- ── Profile Tab ───────────────────────────────── -->
+            <div class="tab-panel" data-panel="profile">
 
-            <!-- Yap Streak / Progression -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <div class="streak-head-left">
-                  <span id="avatarDisplay" class="avatar-display">😊</span>
-                  <span class="eyebrow">Yap Streak</span>
+              <!-- XP / Streak -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <div class="streak-head-left">
+                    <span id="avatarDisplay" class="avatar-display">😊</span>
+                    <div>
+                      <span class="rank-badge" id="rankBadge">Newcomer</span>
+                      <span id="xpMultiplier" class="xp-boost-badge" hidden>1x boost</span>
+                    </div>
+                  </div>
+                  <strong id="streakValue">1 day</strong>
                 </div>
-                <strong id="streakValue">1 day</strong>
-              </div>
-              <div class="rank-row">
-                <span class="rank-badge" id="rankBadge">Newcomer</span>
-                <span id="xpMultiplier" class="xp-boost-badge" hidden>1x boost</span>
-              </div>
-              <div class="hype-grid">
-                <div>
-                  <span>Level</span>
-                  <strong id="levelValue">1</strong>
+                <div class="hype-grid">
+                  <div><span>Level</span><strong id="levelValue">1</strong></div>
+                  <div><span>Total XP</span><strong id="xpValue">0</strong></div>
                 </div>
-                <div>
-                  <span>Total XP</span>
-                  <strong id="xpValue">0</strong>
+                <div class="xp-bar"><span id="xpBarFill"></span></div>
+                <p class="xp-progress-text" id="xpProgress">0 / 100 XP to next level</p>
+                <div id="prestigeCount" class="prestige-count"></div>
+                <button id="prestigeButton" class="prestige-btn wide" type="button" hidden>✨ Prestige Now</button>
+              </div>
+
+              <!-- Challenges -->
+              <div class="hype-card">
+                <div class="hype-head"><span class="eyebrow">Challenges</span></div>
+                <p id="challengeStatus">Daily: 3 matches for +30 XP.</p>
+                <p id="weeklyChallenge">Weekly: 15 matches for +100 XP.</p>
+              </div>
+
+              <!-- Daily Missions -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Daily Missions</span>
+                  <strong id="missionsCompleted">0 / 3</strong>
                 </div>
+                <div class="missions-list" id="missionsList"></div>
               </div>
-              <div class="xp-bar">
-                <span id="xpBarFill"></span>
-              </div>
-              <p class="xp-progress-text" id="xpProgress">0 / 100 XP to next level</p>
-              <div id="prestigeCount" class="prestige-count"></div>
-              <p id="challengeStatus">Daily: 3 matches for +30 XP.</p>
-              <p id="weeklyChallenge">Weekly: 15 matches for +100 XP.</p>
-              <button id="prestigeButton" class="prestige-btn wide" type="button" hidden>✨ Prestige Now (Level 50+)</button>
-            </div>
 
-            <!-- Avatar -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Avatar</span>
-                <span class="muted-tag">Choose yours</span>
-              </div>
-              <div class="avatar-selector" id="avatarSelector"></div>
-            </div>
-
-            <!-- Daily Missions -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Daily Missions</span>
-                <strong id="missionsCompleted">0 / 3</strong>
-              </div>
-              <div class="missions-list" id="missionsList"></div>
-            </div>
-
-            <!-- Anime Vibes -->
-            <div class="hype-card anime-vibes-card">
-              <div class="hype-head">
-                <span class="eyebrow">⚡ Anime Vibes</span>
-                <span class="anime-active-label" id="animeActiveLabel">Off</span>
-              </div>
-              <div class="anime-char-picker" id="animeCharPicker"></div>
-            </div>
-
-            <!-- Prompt Battles -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Prompt Battles</span>
-                <strong>Icebreaker mode</strong>
-              </div>
-              <p class="prompt-card" id="promptCardText">Tell your match one hot take in 10 seconds.</p>
-              <div class="prompt-actions">
-                <button class="ghost-button wide" id="newPromptButton" type="button">New prompt</button>
-                <button class="primary-button wide" id="sendPromptButton" type="button">Send prompt in chat</button>
-              </div>
-            </div>
-
-            <!-- Safety Center -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Safety Center</span>
-                <strong id="trustScoreValue">Trust 85</strong>
-              </div>
-              <div class="hype-grid">
-                <div>
-                  <span>Reports filed</span>
-                  <strong id="reportsValue">0</strong>
+              <!-- Achievements -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Achievements</span>
+                  <strong id="achievementsCount">0 / 16</strong>
                 </div>
-                <div>
-                  <span>Matches completed</span>
-                  <strong id="matchesValue">0</strong>
+                <div class="achievements-list" id="achievementsList"></div>
+              </div>
+
+              <!-- Safety Center -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Safety</span>
+                  <strong id="trustScoreValue">Trust 85</strong>
+                </div>
+                <div class="hype-grid">
+                  <div><span>Reports</span><strong id="reportsValue">0</strong></div>
+                  <div><span>Matches</span><strong id="matchesValue">0</strong></div>
+                </div>
+                <button class="secondary-button wide" id="safetyGuardButton" type="button">Safety Guard: ON</button>
+              </div>
+
+              <!-- Prompt Battles -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Prompt Battles</span>
+                </div>
+                <p class="prompt-card" id="promptCardText">Tell your match one hot take in 10 seconds.</p>
+                <div class="prompt-actions">
+                  <button class="ghost-button wide" id="newPromptButton" type="button">New prompt</button>
+                  <button class="primary-button wide" id="sendPromptButton" type="button">Send in chat</button>
                 </div>
               </div>
-              <button class="secondary-button wide" id="safetyGuardButton" type="button">Safety Guard: ON</button>
             </div>
 
-            <!-- Achievements -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Achievements</span>
-                <strong id="achievementsCount">0 / 16</strong>
+            <!-- ── Vibes Tab ─────────────────────────────────── -->
+            <div class="tab-panel" data-panel="vibes" hidden>
+
+              <!-- Anime Vibes -->
+              <div class="hype-card anime-vibes-card">
+                <div class="hype-head">
+                  <span class="eyebrow">⚡ Anime Character</span>
+                  <span class="anime-active-label" id="animeActiveLabel">Off</span>
+                </div>
+                <p class="hype-card-hint">Pick a character — your camera becomes them.</p>
+                <div class="anime-char-picker" id="animeCharPicker"></div>
               </div>
-              <div class="achievements-list" id="achievementsList"></div>
+
+              <!-- Interests -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Interests</span>
+                  <span class="muted-tag">Pick up to 5</span>
+                </div>
+                <div class="interest-tags" id="interestTags"></div>
+              </div>
+
+              <!-- Avatar -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Avatar</span>
+                  <span class="muted-tag">Choose yours</span>
+                </div>
+                <div class="avatar-selector" id="avatarSelector"></div>
+              </div>
             </div>
 
-            <!-- YapParty -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">YapParty</span>
-                <strong id="partyStatus">No room</strong>
-              </div>
-              <div class="party-actions">
-                <button class="secondary-button wide" id="partyCreateButton" type="button">Create party room</button>
-                <label class="field compact-field">
-                  <span>Room code</span>
-                  <input id="partyCodeInput" type="text" maxlength="8" placeholder="AB12CD">
-                </label>
-                <button class="ghost-button wide" id="partyJoinButton" type="button">Join party room</button>
-                <button class="ghost-button wide" id="partyLeaveButton" type="button">Leave party room</button>
-              </div>
-              <p id="partyRoomLabel">No active room.</p>
-              <div class="party-members" id="partyMembers"></div>
-              <div class="party-composer">
-                <input id="partyChatInput" type="text" maxlength="220" placeholder="Send a room message...">
-                <button class="primary-button wide" id="partySendButton" type="button">Send to party</button>
-              </div>
-            </div>
+            <!-- ── Social Tab ────────────────────────────────── -->
+            <div class="tab-panel" data-panel="social" hidden>
 
-            <!-- Friends -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Friends</span>
-                <strong id="friendsCount">0 friends</strong>
+              <!-- Friends -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Friends</span>
+                  <strong id="friendsCount">0 friends</strong>
+                </div>
+                <button class="secondary-button wide" id="addFriendButton" type="button">Send add request</button>
+                <button class="ghost-button wide" id="acceptFriendButton" type="button" hidden>Accept request</button>
+                <div class="friends-list" id="friendsList"></div>
               </div>
-              <button class="secondary-button wide" id="addFriendButton" type="button">Send add request</button>
-              <button class="ghost-button wide" id="acceptFriendButton" type="button" hidden>Accept request</button>
-              <div class="friends-list" id="friendsList"></div>
-            </div>
 
-            <!-- Leaderboard -->
-            <div class="hype-card">
-              <div class="hype-head">
-                <span class="eyebrow">Leaderboard</span>
-                <button class="ghost-button leaderboard-refresh" id="refreshLeaderboardButton" type="button">Refresh</button>
+              <!-- YapParty -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">YapParty</span>
+                  <strong id="partyStatus">No room</strong>
+                </div>
+                <div class="party-actions">
+                  <button class="secondary-button wide" id="partyCreateButton" type="button">Create party room</button>
+                  <label class="field compact-field">
+                    <span>Room code</span>
+                    <input id="partyCodeInput" type="text" maxlength="8" placeholder="AB12CD">
+                  </label>
+                  <button class="ghost-button wide" id="partyJoinButton" type="button">Join party room</button>
+                  <button class="ghost-button wide" id="partyLeaveButton" type="button">Leave party room</button>
+                </div>
+                <p id="partyRoomLabel">No active room.</p>
+                <div class="party-members" id="partyMembers"></div>
+                <div class="party-composer">
+                  <input id="partyChatInput" type="text" maxlength="220" placeholder="Send a room message...">
+                  <button class="primary-button wide" id="partySendButton" type="button">Send to party</button>
+                </div>
               </div>
-              <div class="leaderboard-list" id="leaderboardList"></div>
+
+              <!-- Leaderboard -->
+              <div class="hype-card">
+                <div class="hype-head">
+                  <span class="eyebrow">Leaderboard</span>
+                  <button class="ghost-button leaderboard-refresh" id="refreshLeaderboardButton" type="button">Refresh</button>
+                </div>
+                <div class="leaderboard-list" id="leaderboardList"></div>
+              </div>
             </div>
           </aside>
 
