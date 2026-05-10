@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /socket.io/
 
+Sitemap: https://yaptalks.vercel.app/sitemap.xml
 Sitemap: https://yaptalks.onrender.com/sitemap.xml

@@ -2106,3 +2106,146 @@ body.dark-mode .message.outgoing p {
   background: rgba(224, 231, 255, 0.95);
   box-shadow: 0 4px 16px rgba(15, 110, 233, 0.15);
 }
+
+/* ── Anime Character Picker ──────────────────────────────────────────────── */
+
+.anime-vibes-card .hype-head .eyebrow {
+  background: linear-gradient(135deg, #f97316, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+.anime-active-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.anime-char-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.char-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+  font: inherit;
+}
+
+.char-btn:hover {
+  transform: scale(1.1);
+  border-color: var(--char-color, var(--primary));
+}
+
+.char-btn.active {
+  border-color: var(--char-color, var(--primary));
+  background: color-mix(in srgb, var(--char-color, #0ea37f) 12%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--char-color, #0ea37f) 50%, transparent);
+}
+
+.char-emoji {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.char-name {
+  font-size: 0.6rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.char-btn.active .char-name {
+  color: var(--char-color, var(--primary));
+  font-weight: 700;
+}
+
+/* ── Peer Anime Badge ────────────────────────────────────────────────────── */
+
+.peer-anime-badge {
+  position: absolute;
+  top: 64px;
+  left: 16px;
+  z-index: 11;
+  background: color-mix(in srgb, var(--char-color, #0ea37f) 25%, rgba(10,15,30,0.7));
+  border: 1px solid var(--char-color, rgba(14,163,127,0.5));
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  backdrop-filter: blur(8px);
+  animation: badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+@keyframes badgePop {
+  from { opacity: 0; transform: scale(0.6) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Video Enhance Active ─────────────────────────────────────────────────── */
+
+.ghost-button.active-enhance {
+  background: linear-gradient(135deg, rgba(14,163,127,0.15), rgba(15,110,233,0.15));
+  border-color: rgba(14, 163, 127, 0.5);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── Emoji Burst ──────────────────────────────────────────────────────────── */
+
+.emoji-burst {
+  position: fixed;
+  z-index: 9998;
+  font-size: 1.6rem;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+  animation: emojiFly 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes emojiFly {
+  0%   { opacity: 1; transform: translate(-50%, -50%) translate(0, 0) scale(1); }
+  80%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.4); }
+}
+
+/* ── Match Flash ─────────────────────────────────────────────────────────── */
+
+.match-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(14, 163, 127, 0.35) 0%, transparent 70%);
+  animation: matchFlash 0.85s ease-out both;
+}
+
+@keyframes matchFlash {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Dark mode extras ─────────────────────────────────────────────────────── */
+
+body.dark-mode .char-btn {
+  background: #1e293b;
+}
+
+body.dark-mode .ghost-button.active-enhance {
+  background: rgba(14, 163, 127, 0.15);
+}
