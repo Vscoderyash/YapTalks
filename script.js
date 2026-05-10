@@ -1040,7 +1040,10 @@ async function ensureLocalStream() {
     return false;
   }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+    });
     state.stream = stream;
     if (els.localVideo) els.localVideo.srcObject = stream;
     setLocalStageVisible(true);
@@ -1048,7 +1051,10 @@ async function ensureLocalStream() {
     setText(els.preview, "Camera ready");
     if (state.animeChar !== "none") {
       const char = ANIME_CHARS.find((c) => c.id === state.animeChar);
-      if (char) startCanvasFilterLoop(char.filter);
+      if (char) {
+        startCanvasFilterLoop(char.filter);
+        if (els.localVideo) els.localVideo.style.filter = char.filter;
+      }
     }
     applyTracks();
     addMessage("System", "Camera and microphone are ready.");
@@ -1574,8 +1580,8 @@ function startCanvasFilterLoop(cssFilter) {
 
   if (!state.filterCanvas) {
     state.filterCanvas = document.createElement("canvas");
-    state.filterCanvas.width = 640;
-    state.filterCanvas.height = 480;
+    state.filterCanvas.width = 1280;
+    state.filterCanvas.height = 720;
     state.filterCtx = state.filterCanvas.getContext("2d");
   }
 
@@ -1586,6 +1592,12 @@ function startCanvasFilterLoop(cssFilter) {
     if (!els.localVideo || els.localVideo.readyState < 2) {
       state.filterAnimFrame = requestAnimationFrame(draw);
       return;
+    }
+    const vw = els.localVideo.videoWidth;
+    const vh = els.localVideo.videoHeight;
+    if (vw && vh && (canvas.width !== vw || canvas.height !== vh)) {
+      canvas.width = vw;
+      canvas.height = vh;
     }
     ctx.filter = cssFilter;
     ctx.drawImage(els.localVideo, 0, 0, canvas.width, canvas.height);
@@ -1622,7 +1634,9 @@ function applyAnimeFilter(charId) {
     }
   } else {
     startCanvasFilterLoop(char.filter);
-    if (els.localVideo) els.localVideo.style.filter = "";
+    // CSS filter on localVideo = what the user sees in their own preview
+    // Canvas stream = what the peer actually receives via WebRTC
+    if (els.localVideo) els.localVideo.style.filter = char.filter;
     if (state.filteredStream) {
       const canvasVideo = state.filteredStream.getVideoTracks()[0];
       replaceRTCVideoTrack(canvasVideo);
