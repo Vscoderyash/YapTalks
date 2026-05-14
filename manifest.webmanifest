@@ -1,0 +1,43 @@
+{
+  "name": "YapTalks — Free Random Video Chat",
+  "short_name": "YapTalks",
+  "description": "Free random video chat with anime character filters, XP ranks, party rooms, and interest matching.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0ea37f",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["social", "communication", "entertainment"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find a match",
+      "short_name": "Match",
+      "description": "Start a new random video chat",
+      "url": "/?action=match",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Privacy Policy",
+      "short_name": "Privacy",
+      "url": "/privacy.html"
+    }
+  ],
+  "prefer_related_applications": false
+}

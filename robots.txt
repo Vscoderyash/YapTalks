@@ -1,7 +1,49 @@
+# YapTalks — Free Random Video Chat
+# https://yaptalks.vercel.app/
+
 User-agent: *
 Allow: /
+Allow: /privacy.html
+Allow: /og-image.svg
+Allow: /favicon.svg
+Allow: /manifest.webmanifest
+
 Disallow: /api/
 Disallow: /socket.io/
+Disallow: /*.json$
+Disallow: /server.js
+Disallow: /auth.js
+Disallow: /script.js
 
+# AI training opt-out
+User-agent: GPTBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+# Block aggressive scrapers
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+# Sitemaps
 Sitemap: https://yaptalks.vercel.app/sitemap.xml
 Sitemap: https://yaptalks.onrender.com/sitemap.xml
+
+# Host preference
+Host: yaptalks.vercel.app
