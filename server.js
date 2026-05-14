@@ -6,11 +6,67 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+  cors: { origin: "*" },
+  maxHttpBufferSize: 1e5, // 100KB cap on socket payloads
+  pingTimeout: 25000,
+  pingInterval: 20000,
+});
 const port = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === "production";
+const startTime = Date.now();
 
-app.use(express.static(path.join(__dirname)));
+// Trust proxy for correct IP detection on Render/Vercel/Cloudflare
+if (process.env.TRUST_PROXY) {
+  app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
+}
 
+// ─── Security headers (no helmet dependency) ─────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()");
+  res.setHeader("X-XSS-Protection", "0");
+  if (isProduction && req.secure) {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
+
+// ─── JSON body limit ─────────────────────────────────────────────────────────
+app.use(express.json({ limit: "16kb" }));
+
+// ─── Lightweight request logger (production-safe) ────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    if (req.path.startsWith("/socket.io/")) return;
+    if (res.statusCode >= 400 || !isProduction) {
+      // eslint-disable-next-line no-console
+      console.log(`${req.method} ${req.path} → ${res.statusCode} (${ms}ms)`);
+    }
+  });
+  next();
+});
+
+// ─── Static files with cache headers ─────────────────────────────────────────
+app.use(
+  express.static(path.join(__dirname), {
+    maxAge: isProduction ? "1h" : "0",
+    setHeaders: (res, filepath) => {
+      if (filepath.endsWith(".svg") || filepath.endsWith(".png")) {
+        res.setHeader("Cache-Control", "public, max-age=86400, immutable");
+      }
+      if (filepath.endsWith(".webmanifest")) {
+        res.setHeader("Content-Type", "application/manifest+json");
+      }
+    },
+  }),
+);
+
+// ─── Matchmaking & state ─────────────────────────────────────────────────────
 const queues = {
   all_video: [],
   all_text: [],
@@ -25,22 +81,24 @@ const leaderboard = new Map();
 const partyRooms = new Map();
 const memberParty = new Map();
 
-// ─── Security state ────────────────────────────────────────────────────────────
-// socketRates: socketId -> { count: number, windowStart: number }
+// ─── Lifetime metrics ────────────────────────────────────────────────────────
+const metrics = {
+  totalConnections: 0,
+  totalMatches: 0,
+  totalMessages: 0,
+  totalReports: 0,
+  totalBans: 0,
+};
+
+// ─── Security state ──────────────────────────────────────────────────────────
 const socketRates = new Map();
-// suspicionScores: socketId -> number
 const suspicionScores = new Map();
-// ipConnectionLog: ip -> array of timestamps (ms)
 const ipConnectionLog = new Map();
 
 const RATE_LIMIT_EVENTS_PER_SEC = 25;
 const SUSPICION_BAN_THRESHOLD = 80;
 const IP_CONN_LIMIT_PER_MINUTE = 12;
 
-/**
- * Returns true if the event is allowed, false if rate-limited.
- * On rate-limit, adds suspicion (+20) automatically.
- */
 function checkRate(socketId) {
   const now = Date.now();
   let entry = socketRates.get(socketId);
@@ -49,7 +107,6 @@ function checkRate(socketId) {
     socketRates.set(socketId, entry);
   }
 
-  // Reset window if more than 1 second has passed
   if (now - entry.windowStart >= 1000) {
     entry.count = 0;
     entry.windowStart = now;
@@ -64,10 +121,6 @@ function checkRate(socketId) {
   return true;
 }
 
-/**
- * Adds to a socket's suspicion score. If threshold reached, emit security-ban
- * and disconnect after 500 ms.
- */
 function addSuspicion(socketId, amount) {
   const current = suspicionScores.get(socketId) || 0;
   const updated = current + amount;
@@ -76,6 +129,7 @@ function addSuspicion(socketId, amount) {
   if (updated >= SUSPICION_BAN_THRESHOLD) {
     const socket = io.sockets.sockets.get(socketId);
     if (socket) {
+      metrics.totalBans += 1;
       socket.emit("security-ban", { reason: "Suspicious activity detected." });
       setTimeout(() => {
         const s = io.sockets.sockets.get(socketId);
@@ -85,21 +139,29 @@ function addSuspicion(socketId, amount) {
   }
 }
 
-/**
- * Returns true if this IP is allowed to connect, false if over the limit.
- */
 function checkIpRate(ip) {
   const now = Date.now();
   const windowMs = 60 * 1000;
   let timestamps = ipConnectionLog.get(ip) || [];
-  // Prune timestamps outside the rolling minute
   timestamps = timestamps.filter((t) => now - t < windowMs);
   timestamps.push(now);
   ipConnectionLog.set(ip, timestamps);
   return timestamps.length <= IP_CONN_LIMIT_PER_MINUTE;
 }
-// ──────────────────────────────────────────────────────────────────────────────
 
+// Periodic cleanup of stale ipConnectionLog (runs every 5 min)
+const ipCleanupInterval = setInterval(() => {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  for (const [ip, timestamps] of ipConnectionLog.entries()) {
+    const fresh = timestamps.filter((t) => now - t < windowMs);
+    if (fresh.length === 0) ipConnectionLog.delete(ip);
+    else ipConnectionLog.set(ip, fresh);
+  }
+}, 5 * 60 * 1000);
+ipCleanupInterval.unref();
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function sanitizeText(value, fallback = "") {
   if (typeof value !== "string") return fallback;
   return value.trim();
@@ -236,6 +298,8 @@ function tryMatchForKey(key) {
     activeMatches.set(first.socketId, { roomId, peerId: second.socketId });
     activeMatches.set(second.socketId, { roomId, peerId: first.socketId });
 
+    metrics.totalMatches += 1;
+
     firstSocket.emit("match-found", { roomId, peerId: second.socketId, initiator: true, mode: first.mode });
     secondSocket.emit("match-found", { roomId, peerId: first.socketId, initiator: false, mode: second.mode });
   }
@@ -255,8 +319,47 @@ function enqueueSocket(socket, options) {
   tryMatchForKey(key);
 }
 
+// ─── HTTP API endpoints ──────────────────────────────────────────────────────
+app.get("/healthz", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    status: "ok",
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || "development",
+  });
+});
+
+app.get("/stats", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const queueDepth = Object.fromEntries(
+    Object.entries(queues).map(([k, v]) => [k, v.length]),
+  );
+  res.json({
+    online: io.engine.clientsCount,
+    activeMatches: activeMatches.size / 2,
+    queueDepth,
+    partyRooms: partyRooms.size,
+    leaderboardSize: leaderboard.size,
+    metrics,
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+  });
+});
+
+app.get("/api/online", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ online: io.engine.clientsCount });
+});
+
+// ─── Online count broadcast (every 5s) ───────────────────────────────────────
+const onlineBroadcastInterval = setInterval(() => {
+  const count = io.engine.clientsCount;
+  io.emit("online-count", { count });
+}, 5000);
+onlineBroadcastInterval.unref();
+
+// ─── Socket.IO ───────────────────────────────────────────────────────────────
 io.on("connection", (socket) => {
-  // ── IP connection rate limiting ──────────────────────────────────────────────
   const ip =
     sanitizeText(socket.handshake.headers["x-forwarded-for"], "").split(",")[0].trim() ||
     socket.handshake.address ||
@@ -266,9 +369,8 @@ io.on("connection", (socket) => {
     socket.disconnect(true);
     return;
   }
-  // ────────────────────────────────────────────────────────────────────────────
 
-  // Initialise suspicion tracking for this socket
+  metrics.totalConnections += 1;
   suspicionScores.set(socket.id, 0);
 
   const auth = socket.handshake.auth || {};
@@ -281,13 +383,13 @@ io.on("connection", (socket) => {
 
   socket.emit("ready", { socketId: socket.id, user: identity });
   socket.emit("leaderboard-data", { items: topLeaderboard(12) });
+  socket.emit("online-count", { count: io.engine.clientsCount });
 
   socket.on("request-match", (options = {}) => {
     if (!checkRate(socket.id)) {
       addSuspicion(socket.id, 20);
       return;
     }
-    // Repeated empty/invalid payload
     if (typeof options !== "object" || options === null) {
       addSuspicion(socket.id, 5);
       return;
@@ -323,7 +425,6 @@ io.on("connection", (socket) => {
     }
     const active = activeMatches.get(socket.id);
     if (!active) {
-      // Message with no active match
       addSuspicion(socket.id, 8);
       return;
     }
@@ -336,6 +437,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 5);
       return;
     }
+    metrics.totalMessages += 1;
     io.to(active.roomId).emit("chat-message", { from: socket.id, text, createdAt: Date.now() });
   });
 
@@ -351,6 +453,8 @@ io.on("connection", (socket) => {
     const updatedCount = (reportCounts.get(reportedSocketId) || 0) + 1;
     reportCounts.set(reportedSocketId, updatedCount);
 
+    metrics.totalReports += 1;
+
     socket.emit("report-ack", {
       targetReports: updatedCount,
       reason: sanitizeText(payload.reason, "inappropriate").slice(0, 60),
@@ -361,7 +465,6 @@ io.on("connection", (socket) => {
       targetSocket.emit("safety-warning", { count: updatedCount });
     }
 
-    // Auto-action: if reported socket has 5+ reports, cleanupMatch after 2 s
     if (updatedCount >= 5) {
       setTimeout(() => {
         cleanupMatch(reportedSocketId, "removed");
@@ -549,7 +652,6 @@ io.on("connection", (socket) => {
     io.to(payload.to).emit("webrtc-ice-candidate", { from: socket.id, candidate: payload.candidate });
   });
 
-  // ── New: anime-theme ─────────────────────────────────────────────────────────
   socket.on("anime-theme", (payload = {}) => {
     if (!checkRate(socket.id)) {
       addSuspicion(socket.id, 20);
@@ -566,7 +668,6 @@ io.on("connection", (socket) => {
     io.to(active.roomId).emit("anime-theme", { from: socket.id, charId, charName });
   });
 
-  // ── New: typing ──────────────────────────────────────────────────────────────
   socket.on("typing", () => {
     if (!checkRate(socket.id)) {
       addSuspicion(socket.id, 20);
@@ -583,12 +684,51 @@ io.on("connection", (socket) => {
     leaveParty(socket.id);
     reportCounts.delete(socket.id);
     userPresence.delete(socket.id);
-    // Clean up security data
     socketRates.delete(socket.id);
     suspicionScores.delete(socket.id);
   });
 });
 
+// ─── Graceful shutdown ───────────────────────────────────────────────────────
+function shutdown(signal) {
+  // eslint-disable-next-line no-console
+  console.log(`\n${signal} received. Closing server gracefully...`);
+  io.emit("server-shutdown", { reason: "Server is restarting. You'll reconnect automatically." });
+  io.close(() => {
+    server.close(() => {
+      // eslint-disable-next-line no-console
+      console.log("Server closed.");
+      process.exit(0);
+    });
+  });
+  // Force exit after 10s if graceful close hangs
+  setTimeout(() => {
+    // eslint-disable-next-line no-console
+    console.error("Force-exiting after 10s timeout.");
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+process.on("uncaughtException", (err) => {
+  // eslint-disable-next-line no-console
+  console.error("Uncaught exception:", err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  // eslint-disable-next-line no-console
+  console.error("Unhandled rejection:", reason);
+});
+
 server.listen(port, () => {
-  console.log(`YapTalks server running on http://localhost:${port}`);
+  // eslint-disable-next-line no-console
+  console.log(`YapTalks server v3.0 running on http://localhost:${port}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Environment: ${process.env.NODE_ENV || "development"}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Health check: http://localhost:${port}/healthz`);
+  // eslint-disable-next-line no-console
+  console.log(`  Stats: http://localhost:${port}/stats`);
 });

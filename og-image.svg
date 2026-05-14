@@ -1,21 +1,90 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="YapTalks live video chat">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="YapTalks — Free random video chat with anime filters and XP ranks">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fff7e2"/>
-      <stop offset="50%" stop-color="#e8f4f1"/>
-      <stop offset="100%" stop-color="#f1f4ed"/>
+      <stop offset="0%" stop-color="#0a0f1e"/>
+      <stop offset="50%" stop-color="#0d1a2e"/>
+      <stop offset="100%" stop-color="#0f1229"/>
     </linearGradient>
     <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ff6b2c"/>
-      <stop offset="100%" stop-color="#ff8f5c"/>
+      <stop offset="0%" stop-color="#0ea37f"/>
+      <stop offset="100%" stop-color="#0f6ee9"/>
     </linearGradient>
+    <linearGradient id="text-gradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <radialGradient id="orb-1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#0ea37f" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0ea37f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb-2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#0f6ee9" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0f6ee9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb-3" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
+
   <rect width="1200" height="630" fill="url(#bg)"/>
-  <rect x="88" y="88" width="1024" height="454" rx="36" fill="#fffdf7" opacity="0.92"/>
-  <rect x="130" y="130" width="120" height="120" rx="28" fill="url(#brand)"/>
-  <text x="190" y="206" text-anchor="middle" font-family="Sora, Arial, sans-serif" font-size="54" font-weight="800" fill="#ffffff">YT</text>
-  <text x="290" y="200" font-family="Sora, Arial, sans-serif" font-size="74" font-weight="800" fill="#151515">YapTalks</text>
-  <text x="290" y="264" font-family="Space Grotesk, Arial, sans-serif" font-size="36" fill="#5f5b54">Live Video Chat and Text Chat</text>
-  <text x="290" y="322" font-family="Space Grotesk, Arial, sans-serif" font-size="28" fill="#0f8a78">Secure matching • Private rooms • Real-time messaging</text>
-  <text x="130" y="500" font-family="Space Grotesk, Arial, sans-serif" font-size="28" fill="#5f5b54">Built by Yash Raj</text>
+
+  <circle cx="180" cy="140" r="320" fill="url(#orb-1)"/>
+  <circle cx="1020" cy="500" r="280" fill="url(#orb-2)"/>
+  <circle cx="900" cy="100" r="180" fill="url(#orb-3)"/>
+
+  <g opacity="0.06">
+    <path d="M 0 100 L 1200 100 M 0 200 L 1200 200 M 0 300 L 1200 300 M 0 400 L 1200 400 M 0 500 L 1200 500" stroke="#fff" stroke-width="1"/>
+    <path d="M 100 0 L 100 630 M 300 0 L 300 630 M 500 0 L 500 630 M 700 0 L 700 630 M 900 0 L 900 630 M 1100 0 L 1100 630" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <g transform="translate(80, 70)">
+    <rect width="106" height="106" rx="26" fill="url(#brand)" filter="url(#glow)"/>
+    <text x="53" y="74" text-anchor="middle" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="46" font-weight="800" fill="#ffffff">YT</text>
+  </g>
+
+  <text x="220" y="138" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="44" font-weight="600" fill="#7dd3fc" letter-spacing="-0.5">YapTalks</text>
+  <text x="220" y="172" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="20" font-weight="500" fill="rgba(255,255,255,0.55)" letter-spacing="2">FREE OMEGLE ALTERNATIVE</text>
+
+  <text x="80" y="320" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="92" font-weight="800" fill="url(#text-gradient)" letter-spacing="-3">Chat with anyone.</text>
+  <text x="80" y="412" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="92" font-weight="800" fill="#ffffff" letter-spacing="-3">Anywhere. Instantly.</text>
+
+  <g transform="translate(80, 470)" font-family="'Outfit', system-ui, sans-serif" font-size="22" fill="rgba(255,255,255,0.7)">
+    <g>
+      <circle cx="10" cy="-7" r="5" fill="#0ea37f"/>
+      <text x="26" y="0">Anime Filters</text>
+    </g>
+    <g transform="translate(220, 0)">
+      <circle cx="10" cy="-7" r="5" fill="#0f6ee9"/>
+      <text x="26" y="0">XP &amp; Ranks</text>
+    </g>
+    <g transform="translate(420, 0)">
+      <circle cx="10" cy="-7" r="5" fill="#a78bfa"/>
+      <text x="26" y="0">Interest Matching</text>
+    </g>
+    <g transform="translate(680, 0)">
+      <circle cx="10" cy="-7" r="5" fill="#ec4899"/>
+      <text x="26" y="0">Party Rooms</text>
+    </g>
+  </g>
+
+  <g transform="translate(80, 540)">
+    <rect x="0" y="0" width="14" height="14" rx="7" fill="#22c55e">
+      <animate attributeName="opacity" values="1;0.5;1" dur="1.6s" repeatCount="indefinite"/>
+    </rect>
+    <text x="26" y="12" font-family="'Outfit', system-ui, sans-serif" font-size="20" font-weight="600" fill="#22c55e">LIVE</text>
+    <text x="100" y="12" font-family="'Outfit', system-ui, sans-serif" font-size="20" fill="rgba(255,255,255,0.6)">— Free random video chat made by Yash Raj</text>
+  </g>
+
+  <g opacity="0.5" transform="translate(960, 520)">
+    <rect x="0" y="0" width="160" height="56" rx="28" fill="rgba(255,255,255,0.08)" stroke="rgba(14,163,127,0.5)" stroke-width="1"/>
+    <text x="80" y="36" text-anchor="middle" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="20" font-weight="800" fill="#7dd3fc">v3.0</text>
+  </g>
 </svg>

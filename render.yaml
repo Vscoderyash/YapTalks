@@ -3,9 +3,38 @@ services:
     name: yaptalks
     runtime: node
     plan: free
-    buildCommand: npm install
+    region: oregon
+    buildCommand: npm install --production
     startCommand: npm start
     autoDeploy: true
+    healthCheckPath: /healthz
+    numInstances: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=460"
+      - key: TRUST_PROXY
+        value: "1"
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(self), microphone=(self), geolocation=()"
+      - path: /styles.css
+        name: Cache-Control
+        value: "public, max-age=3600, must-revalidate"
+      - path: /*.svg
+        name: Cache-Control
+        value: "public, max-age=86400, immutable"
+      - path: /manifest.webmanifest
+        name: Content-Type
+        value: application/manifest+json

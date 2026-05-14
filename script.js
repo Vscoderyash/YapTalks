@@ -808,8 +808,10 @@ function checkAchievements() {
       if (ach.xpReward > 0) {
         state.profile.xp = (Number(state.profile.xp) || 0) + ach.xpReward;
         addMessage("System", `Achievement unlocked: ${ach.label}! +${ach.xpReward} XP.`);
+        if (typeof toast !== "undefined") toast.success(`${ach.label} — +${ach.xpReward} XP`, 5000);
       } else {
         addMessage("System", `Achievement unlocked: ${ach.label}!`);
+        if (typeof toast !== "undefined") toast.success(ach.label, 5000);
       }
     }
   }
@@ -948,6 +950,7 @@ function awardXp(points, message) {
     addMessage("System", `Level up! You are now level ${newLevel} — ${rankTitle(newLevel)}.`);
     playSound("levelup");
     launchConfetti();
+    if (typeof window.celebrateLevelUp === "function") window.celebrateLevelUp(newLevel);
   }
 }
 
@@ -1191,6 +1194,7 @@ async function connectSocketIfNeeded() {
     const interestList = (state.profile?.interests || []).join(", ");
     setText(els.matchQuality, interestList ? `Interests: ${interestList}` : "Random match");
     addMessage("System", "You are connected. Keep the conversation respectful.");
+    if (typeof toast !== "undefined") toast.info("New match found!", 3000);
     const mediaReady = await ensureLocalStream();
     if (!mediaReady) return;
     const pc = createPeerConnection(payload.peerId);
@@ -1795,6 +1799,7 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
     return;
   }
   addMessage("System", "Login successful. YapTalks v3 is active.");
+  if (typeof toast !== "undefined") toast.success("Welcome back!", 3000);
 });
 
 // ── Cursor Glow ───────────────────────────────────────────────────────────────
@@ -1825,3 +1830,215 @@ window.addEventListener("yaptalks-auth-changed", (event) => {
   sync();
   new MutationObserver(sync).observe(sourceEl, { childList: true, characterData: true, subtree: true });
 })();
+
+// ── Toast System ─────────────────────────────────────────────────────────────
+
+const toast = (() => {
+  const container = document.getElementById("toastContainer");
+  const icons = { success: "✓", error: "✕", info: "i", warn: "!" };
+  const titles = { success: "Success", error: "Error", info: "Info", warn: "Warning" };
+
+  function show(message, type = "info", duration = 4000) {
+    if (!container) return;
+    const el = document.createElement("div");
+    el.className = `toast toast-${type}`;
+    el.setAttribute("role", "alert");
+    el.setAttribute("aria-live", "assertive");
+    el.innerHTML = `
+      <span class="toast-icon" aria-hidden="true">${icons[type] || icons.info}</span>
+      <div class="toast-body">
+        <div class="toast-title">${titles[type] || "Notice"}</div>
+        <div class="toast-msg">${message}</div>
+      </div>
+      <button class="toast-close" aria-label="Dismiss" type="button">×</button>`;
+
+    const dismiss = () => {
+      el.classList.add("toast-out");
+      el.addEventListener("animationend", () => el.remove(), { once: true });
+    };
+    el.querySelector(".toast-close").addEventListener("click", dismiss);
+    container.appendChild(el);
+    if (duration > 0) setTimeout(dismiss, duration);
+    return dismiss;
+  }
+
+  return {
+    success: (msg, dur) => show(msg, "success", dur),
+    error:   (msg, dur) => show(msg, "error",   dur),
+    info:    (msg, dur) => show(msg, "info",     dur),
+    warn:    (msg, dur) => show(msg, "warn",     dur),
+    show,
+  };
+})();
+
+// ── Network Status Banner ────────────────────────────────────────────────────
+
+(function initNetworkStatus() {
+  const banner = document.getElementById("networkBanner");
+  if (!banner) return;
+
+  let hideTimer = null;
+
+  function showBanner(online) {
+    clearTimeout(hideTimer);
+    banner.hidden = false;
+    banner.classList.toggle("is-visible", false);
+    // force reflow so transition fires
+    void banner.offsetWidth;
+    banner.classList.toggle("is-online", online);
+    banner.classList.add("is-visible");
+
+    if (online) {
+      hideTimer = setTimeout(() => {
+        banner.classList.remove("is-visible");
+        banner.addEventListener("transitionend", () => { banner.hidden = true; }, { once: true });
+      }, 3000);
+    }
+  }
+
+  window.addEventListener("offline", () => {
+    showBanner(false);
+    toast.error("No internet connection.", 0);
+  });
+
+  window.addEventListener("online", () => {
+    showBanner(true);
+    toast.success("Back online!");
+  });
+
+  if (!navigator.onLine) showBanner(false);
+})();
+
+// ── Help Modal ───────────────────────────────────────────────────────────────
+
+(function initHelpModal() {
+  const modal   = document.getElementById("helpModal");
+  const openBtn = document.getElementById("helpButton");
+  const closeBtn = document.getElementById("helpCloseButton");
+  if (!modal) return;
+
+  function openHelp() {
+    modal.hidden = false;
+    modal.querySelector(".help-card")?.focus?.();
+    document.body.style.overflow = "hidden";
+  }
+  function closeHelp() {
+    modal.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  openBtn?.addEventListener("click", openHelp);
+  closeBtn?.addEventListener("click", closeHelp);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeHelp(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.hidden) { e.preventDefault(); closeHelp(); }
+  });
+
+  window._helpModal = { open: openHelp, close: closeHelp };
+})();
+
+// ── Keyboard Shortcuts ───────────────────────────────────────────────────────
+
+(function initKeyboardShortcuts() {
+  const ignore = () => {
+    const t = document.activeElement?.tagName;
+    return t === "INPUT" || t === "TEXTAREA" || t === "SELECT";
+  };
+
+  document.addEventListener("keydown", (e) => {
+    // Don't fire when typing in inputs
+    if (ignore()) return;
+
+    switch (e.key) {
+      case "?":
+        e.preventDefault();
+        window._helpModal?.open();
+        break;
+
+      case "m":
+      case "M":
+        // Toggle mute
+        e.preventDefault();
+        document.getElementById("muteButton")?.click();
+        break;
+
+      case "c":
+      case "C":
+        // Toggle camera
+        e.preventDefault();
+        document.getElementById("cameraButton")?.click();
+        break;
+
+      case "n":
+      case "N":
+        // Next / skip current peer
+        e.preventDefault();
+        document.getElementById("nextMatchButton")?.click();
+        break;
+
+      case "d":
+      case "D":
+        // Toggle dark mode
+        e.preventDefault();
+        document.getElementById("darkModeButton")?.click();
+        break;
+
+      case "Escape":
+        // Close any open panel (help closed by its own handler)
+        document.getElementById("authModal")?.setAttribute("hidden", "");
+        break;
+    }
+
+    // Ctrl/Cmd + Enter → send chat message
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      const focused = document.activeElement;
+      const chatInput = document.getElementById("chatInput");
+      if (chatInput && focused === chatInput) {
+        e.preventDefault();
+        document.getElementById("sendButton")?.click();
+      }
+    }
+  });
+})();
+
+// ── Server-Shutdown Handler ──────────────────────────────────────────────────
+
+(function initServerShutdownHandler() {
+  // socket is set up later; attach on the socket after init
+  const attachShutdown = () => {
+    if (!state.socket) return;
+    state.socket.on("server-shutdown", () => {
+      toast.warn("Server is restarting. You will be reconnected shortly.", 0);
+      addMessage("System", "Server is restarting — please wait.");
+    });
+  };
+
+  // Poll until socket is ready (it's created asynchronously)
+  const poll = setInterval(() => {
+    if (state.socket) {
+      attachShutdown();
+      clearInterval(poll);
+    }
+  }, 500);
+})();
+
+// ── XP Level-Up Celebration ──────────────────────────────────────────────────
+
+function celebrateLevelUp(newLevel) {
+  toast.success(`Level ${newLevel} reached! Keep going.`, 5000);
+
+  // Brief full-page flash
+  const flash = document.createElement("div");
+  flash.style.cssText = `
+    position:fixed;inset:0;z-index:9000;pointer-events:none;
+    background:radial-gradient(circle at 50% 40%, rgba(14,163,127,0.22) 0%, transparent 70%);
+    animation:fadeIn 0.15s ease forwards, fadeOut 0.6s 0.4s ease forwards;
+  `;
+  document.body.appendChild(flash);
+  flash.addEventListener("animationend", (e) => {
+    if (e.animationName === "fadeOut") flash.remove();
+  });
+}
+
+// Expose so XP handling code can call it
+window.celebrateLevelUp = celebrateLevelUp;

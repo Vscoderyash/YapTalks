@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signOut,
@@ -50,12 +51,28 @@ const openAuthButton = document.getElementById("openAuthButton");
 const closeAuthButton = document.getElementById("closeAuthButton");
 const logoutButton = document.getElementById("logoutButton");
 const authMessage = document.getElementById("authMessage");
+const togglePasswordButton = document.getElementById("togglePasswordButton");
+const passwordStrengthBar = document.getElementById("passwordStrengthBar");
+const passwordStrengthLabel = document.getElementById("passwordStrengthLabel");
+const capsLockHint = document.getElementById("capsLockHint");
+const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+
 const POLICY_ACCEPTED_STORAGE_KEY = "yaptalks_policy_accepted_v1";
+const REMEMBERED_EMAIL_KEY = "yaptalks_remembered_email";
 let authUiLoading = false;
 
 if (policyConsent) {
   try {
     policyConsent.checked = localStorage.getItem(POLICY_ACCEPTED_STORAGE_KEY) === "1";
+  } catch (error) {
+    // Ignore localStorage restrictions.
+  }
+}
+
+if (authEmail) {
+  try {
+    const savedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+    if (savedEmail) authEmail.value = savedEmail;
   } catch (error) {
     // Ignore localStorage restrictions.
   }
@@ -68,6 +85,7 @@ function emitAuthState(user) {
     uid: user ? user.uid : null,
     email: user ? user.email : null,
     displayName: user ? user.displayName : null,
+    emailVerified: user ? user.emailVerified : false,
   };
 
   window.dispatchEvent(
@@ -80,6 +98,13 @@ function emitAuthState(user) {
 function setAuthMessage(message, isError = false) {
   authMessage.textContent = message;
   authMessage.classList.toggle("is-error", isError);
+  authMessage.classList.remove("is-success");
+}
+
+function setAuthSuccess(message) {
+  authMessage.textContent = message;
+  authMessage.classList.remove("is-error");
+  authMessage.classList.add("is-success");
 }
 
 function setAuthUiLoading(isLoading) {
@@ -100,7 +125,11 @@ function setModalVisibility(isOpen) {
   document.body.classList.toggle("modal-open", isOpen);
 
   if (isOpen) {
-    authEmail.focus();
+    if (authEmail.value) {
+      authPassword.focus();
+    } else {
+      authEmail.focus();
+    }
   }
 }
 
@@ -126,6 +155,14 @@ function rememberPolicyAcceptance() {
   }
 }
 
+function rememberEmail(email) {
+  try {
+    localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+  } catch (error) {
+    // Ignore localStorage restrictions.
+  }
+}
+
 window.yapTalksAuthUI = {
   open: openAuthModal,
   close: closeAuthModal,
@@ -137,12 +174,75 @@ if (policyConsent) {
   });
 }
 
+// ── Password visibility toggle ────────────────────────────────────────────────
+if (togglePasswordButton && authPassword) {
+  togglePasswordButton.addEventListener("click", () => {
+    const isHidden = authPassword.type === "password";
+    authPassword.type = isHidden ? "text" : "password";
+    togglePasswordButton.setAttribute("aria-pressed", String(isHidden));
+    togglePasswordButton.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
+    togglePasswordButton.textContent = isHidden ? "Hide" : "Show";
+  });
+}
+
+// ── Password strength meter ───────────────────────────────────────────────────
+function scorePassword(pw) {
+  if (!pw) return { score: 0, label: "" };
+  let score = 0;
+  if (pw.length >= 6) score += 1;
+  if (pw.length >= 10) score += 1;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score += 1;
+  if (/\d/.test(pw)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pw)) score += 1;
+  const labels = ["Too short", "Weak", "Fair", "Good", "Strong", "Very strong"];
+  return { score, label: labels[Math.min(score, labels.length - 1)] };
+}
+
+if (authPassword && passwordStrengthBar && passwordStrengthLabel) {
+  authPassword.addEventListener("input", () => {
+    const { score, label } = scorePassword(authPassword.value);
+    const pct = Math.min(100, score * 20);
+    passwordStrengthBar.style.width = `${pct}%`;
+    passwordStrengthBar.dataset.strength = String(score);
+    passwordStrengthLabel.textContent = authPassword.value ? label : "";
+  });
+}
+
+// ── CapsLock detection ────────────────────────────────────────────────────────
+if (authPassword && capsLockHint) {
+  const updateCaps = (event) => {
+    const on = typeof event.getModifierState === "function" && event.getModifierState("CapsLock");
+    capsLockHint.hidden = !on;
+  };
+  authPassword.addEventListener("keydown", updateCaps);
+  authPassword.addEventListener("keyup", updateCaps);
+  authPassword.addEventListener("blur", () => {
+    capsLockHint.hidden = true;
+  });
+}
+
+// ── Submit on Enter ───────────────────────────────────────────────────────────
+[authEmail, authPassword, authName].forEach((input) => {
+  if (!input) return;
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    if (loginButton.disabled) return;
+    event.preventDefault();
+    loginButton.click();
+  });
+});
+
 function validateFields() {
   const email = authEmail.value.trim();
   const password = authPassword.value;
 
   if (!email || !password) {
     setAuthMessage("Please enter both email and password.", true);
+    return null;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setAuthMessage("Please enter a valid email address.", true);
     return null;
   }
 
@@ -167,7 +267,7 @@ function setUiForUser(user) {
 
   if (loggedIn) {
     const name = user.displayName || user.email || "Member";
-    setAuthMessage(`Welcome ${name}. You are logged in.`);
+    setAuthSuccess(`Welcome ${name}. You are logged in.`);
     closeAuthModal();
   } else {
     setAuthMessage("Sign in to unlock matching and messaging.");
@@ -180,14 +280,26 @@ function friendlyAuthError(error) {
   if (code.includes("invalid-credential") || code.includes("wrong-password")) {
     return "Incorrect email or password.";
   }
+  if (code.includes("user-not-found")) {
+    return "No account found with that email. Try creating one.";
+  }
   if (code.includes("email-already-in-use")) {
     return "This email already has an account. Try logging in.";
   }
+  if (code.includes("invalid-email")) {
+    return "That email address looks invalid.";
+  }
+  if (code.includes("weak-password")) {
+    return "Password is too weak. Try a longer one with mixed characters.";
+  }
   if (code.includes("too-many-requests")) {
-    return "Too many attempts. Please wait and try again.";
+    return "Too many attempts. Please wait a few minutes and try again.";
   }
   if (code.includes("network-request-failed")) {
     return "Network error. Please check your internet connection.";
+  }
+  if (code.includes("user-disabled")) {
+    return "This account has been disabled. Contact support.";
   }
   return "Authentication failed. Please try again.";
 }
@@ -203,7 +315,8 @@ loginButton.addEventListener("click", async () => {
     await persistenceReady;
     await signInWithEmailAndPassword(auth, fields.email, fields.password);
     rememberPolicyAcceptance();
-    setAuthMessage("Login successful.");
+    rememberEmail(fields.email);
+    setAuthSuccess("Login successful.");
   } catch (error) {
     setAuthMessage(friendlyAuthError(error), true);
   } finally {
@@ -217,6 +330,12 @@ signupButton.addEventListener("click", async () => {
     return;
   }
 
+  const { score } = scorePassword(fields.password);
+  if (score < 2) {
+    setAuthMessage("Password is too weak. Add length, mixed case, numbers, or symbols.", true);
+    return;
+  }
+
   setAuthUiLoading(true);
   try {
     await persistenceReady;
@@ -225,7 +344,8 @@ signupButton.addEventListener("click", async () => {
       await updateProfile(credential.user, { displayName: fields.name });
     }
     rememberPolicyAcceptance();
-    setAuthMessage("Account created successfully.");
+    rememberEmail(fields.email);
+    setAuthSuccess("Account created. Welcome to YapTalks!");
   } catch (error) {
     setAuthMessage(friendlyAuthError(error), true);
   } finally {
@@ -260,6 +380,32 @@ window.addEventListener("keydown", (event) => {
     closeAuthModal();
   }
 });
+
+// ── Forgot password ───────────────────────────────────────────────────────────
+if (forgotPasswordLink) {
+  forgotPasswordLink.addEventListener("click", async (event) => {
+    event.preventDefault();
+    const email = authEmail.value.trim();
+    if (!email) {
+      setAuthMessage("Enter your email above first, then click 'Forgot password'.", true);
+      authEmail.focus();
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAuthMessage("Please enter a valid email address.", true);
+      return;
+    }
+    setAuthUiLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setAuthSuccess(`Password reset link sent to ${email}. Check your inbox.`);
+    } catch (error) {
+      setAuthMessage(friendlyAuthError(error), true);
+    } finally {
+      setAuthUiLoading(false);
+    }
+  });
+}
 
 onAuthStateChanged(auth, (user) => {
   setUiForUser(user);

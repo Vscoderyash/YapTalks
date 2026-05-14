@@ -22,9 +22,14 @@
   <meta name="twitter:description" content="The Gen-Z random video chat app. Anime character filters, XP & ranks, interest matching, party rooms. Try it free.">
   <meta name="twitter:image" content="https://yaptalks.vercel.app/og-image.svg">
   <link rel="canonical" href="https://yaptalks.vercel.app/">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
   <title>YapTalks — Free Random Video Chat | Omegle Alternative with Anime Filters & XP Ranks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://yaptalks.onrender.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet"
@@ -94,6 +99,8 @@
 </head>
 <body>
 
+  <a class="skip-link" href="#app">Skip to main content</a>
+
   <div class="aurora-bg" aria-hidden="true">
     <div class="aurora-orb a1"></div>
     <div class="aurora-orb a2"></div>
@@ -102,6 +109,15 @@
   </div>
   <div class="noise-layer" aria-hidden="true"></div>
   <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Network status banner -->
+  <div class="network-banner" id="networkBanner" hidden>
+    <span class="network-banner-dot"></span>
+    <span id="networkBannerText">You're offline</span>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
   <!-- ── Splash Screen ─────────────────────────────────────────────────────── -->
   <div id="splash" class="splash">
@@ -139,6 +155,7 @@
         <span id="onlineCount" class="status-pill online-count">···</span>
         <span class="status-pill">Live platform</span>
         <button id="darkModeButton" class="ghost-button" type="button">🌙 Dark</button>
+        <button id="helpButton" class="ghost-button" type="button" aria-label="Help &amp; Keyboard Shortcuts" title="Help (?)">?</button>
         <button id="openAuthButton" class="secondary-button" type="button">Log in / Sign up</button>
         <button id="logoutButton" class="ghost-button" type="button" hidden>Log out</button>
       </div>
@@ -548,9 +565,23 @@
       </label>
 
       <label class="field">
-        <span>Password</span>
+        <span class="field-label-row">
+          <span>Password</span>
+          <button id="togglePasswordButton" class="field-toggle" type="button" aria-pressed="false" aria-label="Show password">Show</button>
+        </span>
         <input id="authPassword" type="password" placeholder="Minimum 6 characters" autocomplete="current-password">
       </label>
+
+      <div class="password-strength" aria-live="polite">
+        <div class="password-strength-track">
+          <span id="passwordStrengthBar"></span>
+        </div>
+        <span class="password-strength-label" id="passwordStrengthLabel"></span>
+      </div>
+
+      <p class="caps-lock-hint" id="capsLockHint" hidden>⚠️ Caps Lock is on</p>
+
+      <a href="#forgot" id="forgotPasswordLink" class="forgot-password-link">Forgot your password?</a>
 
       <label class="policy-consent" for="policyConsent">
         <input id="policyConsent" type="checkbox">
@@ -565,6 +596,32 @@
       </div>
 
       <p id="authMessage" class="auth-message">Sign in to continue.</p>
+    </div>
+  </section>
+
+  <!-- Help / Keyboard Shortcuts Modal -->
+  <section class="help-modal" id="helpModal" hidden>
+    <div class="help-card panel" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <button class="help-close" id="helpCloseButton" type="button" aria-label="Close help">×</button>
+      <span class="eyebrow">Help &amp; Shortcuts</span>
+      <h2 id="helpTitle">Keyboard Shortcuts</h2>
+      <p>Speed up your YapTalks experience.</p>
+      <ul class="shortcut-list">
+        <li><span class="shortcut-label">Send chat message</span><span><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span></li>
+        <li><span class="shortcut-label">Close modal / panel</span><kbd>Esc</kbd></li>
+        <li><span class="shortcut-label">Open this help panel</span><kbd>?</kbd></li>
+        <li><span class="shortcut-label">Find next match</span><kbd>N</kbd></li>
+        <li><span class="shortcut-label">Toggle microphone</span><kbd>M</kbd></li>
+        <li><span class="shortcut-label">Toggle camera</span><kbd>C</kbd></li>
+        <li><span class="shortcut-label">Toggle dark mode</span><kbd>D</kbd></li>
+      </ul>
+      <h3 class="help-h3">Tips</h3>
+      <ul class="help-tips">
+        <li>Pick interests in the <strong>Vibes</strong> tab for better matches.</li>
+        <li>Anime filters are sent to your peer over WebRTC — they see you transformed.</li>
+        <li>Daily streaks multiply your XP up to <strong>2×</strong> at 30 days.</li>
+        <li>Reach level <strong>50</strong> to unlock prestige.</li>
+      </ul>
     </div>
   </section>
 

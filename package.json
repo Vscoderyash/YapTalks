@@ -1,15 +1,50 @@
 {
   "name": "yaptalks",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "YapTalks random video and text chat with owner-only monetization.",
+  "description": "YapTalks — free random video chat with anime character filters, XP ranks, interest matching, and party rooms. The next-generation Omegle alternative.",
   "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "NODE_ENV=development node server.js",
+    "preview": "node server.js",
+    "lint": "node --check server.js && node --check script.js && node --check auth.js",
+    "test": "echo \"No tests configured yet\" && exit 0"
   },
   "dependencies": {
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
+  },
+  "keywords": [
+    "video-chat",
+    "random-chat",
+    "omegle-alternative",
+    "monkey-alternative",
+    "webrtc",
+    "socket-io",
+    "live-chat",
+    "anime-filter",
+    "xp-system",
+    "party-rooms",
+    "interest-matching"
+  ],
+  "author": {
+    "name": "Yash Raj",
+    "email": "yash69801@gmail.com",
+    "url": "https://yaptalks.vercel.app/"
+  },
+  "license": "UNLICENSED",
+  "homepage": "https://yaptalks.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vscoderyash/YapTalks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Vscoderyash/YapTalks/issues"
   }
 }
