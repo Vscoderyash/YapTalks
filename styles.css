@@ -3958,3 +3958,236 @@ body.dark-mode .typing-dot { background: #64748b; }
 body.dark-mode .panel:hover {
   box-shadow: var(--shadow), 0 0 0 1px rgba(14, 163, 127, 0.1);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENHANCEMENT PASS 2 — Audio Visualizer, Match Timer, Prestige Glow,
+   Party Room Badge, Reaction Burst, Profile Card
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Audio Visualizer Bar ─────────────────────────────────────────── */
+.audio-visualizer {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+  padding: 0 2px;
+}
+.audio-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--primary);
+  min-height: 3px;
+  transition: height 0.1s ease;
+  animation: audioIdle 1.6s ease-in-out infinite;
+}
+.audio-bar:nth-child(1) { animation-delay: 0.0s; }
+.audio-bar:nth-child(2) { animation-delay: 0.1s; }
+.audio-bar:nth-child(3) { animation-delay: 0.2s; }
+.audio-bar:nth-child(4) { animation-delay: 0.3s; }
+.audio-bar:nth-child(5) { animation-delay: 0.2s; }
+.audio-bar:nth-child(6) { animation-delay: 0.1s; }
+.audio-bar:nth-child(7) { animation-delay: 0.0s; }
+@keyframes audioIdle {
+  0%, 100% { height: 3px;  opacity: 0.5; }
+  50%       { height: 14px; opacity: 1;   }
+}
+.audio-visualizer.is-muted .audio-bar {
+  height: 3px !important;
+  opacity: 0.25;
+  animation: none;
+}
+.audio-visualizer.is-speaking .audio-bar {
+  background: linear-gradient(to top, var(--primary), var(--accent));
+}
+
+/* ── Match Timer ─────────────────────────────────────────────────── */
+.match-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+.match-timer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: bannerPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.match-timer.long { color: var(--primary); border-color: rgba(14,163,127,0.3); }
+
+/* ── Prestige Glow on Rank Badge ─────────────────────────────────── */
+.rank-badge.prestige-1 { box-shadow: 0 0 14px rgba(14, 163, 127, 0.55); }
+.rank-badge.prestige-2 { box-shadow: 0 0 18px rgba(15, 110, 233, 0.6); }
+.rank-badge.prestige-3 {
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.65);
+  background: linear-gradient(135deg, #7c3aed, #db2777) !important;
+}
+@keyframes prestigePulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.4); }
+  50%       { box-shadow: 0 0 28px rgba(168,85,247,0.75); }
+}
+.rank-badge.prestige-3 { animation: prestigePulse 2.5s ease-in-out infinite; }
+
+/* ── Party Room Live Badge ───────────────────────────────────────── */
+.party-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #0f6ee9);
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.party-live-badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: bannerPulse 1.2s ease-in-out infinite;
+}
+
+/* ── Emoji Reaction Burst ────────────────────────────────────────── */
+@keyframes reactionFloat {
+  0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-110px) scale(1.3) rotate(15deg); }
+}
+.reaction-float {
+  position: fixed;
+  font-size: 1.6rem;
+  pointer-events: none;
+  z-index: 4500;
+  user-select: none;
+  animation: reactionFloat 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── Profile Card Hover ──────────────────────────────────────────── */
+.profile-card {
+  position: relative;
+  overflow: hidden;
+}
+.profile-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%),
+    rgba(14,163,127,0.1) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.profile-card:hover::after { opacity: 1; }
+
+/* ── XP Milestone Flash ──────────────────────────────────────────── */
+@keyframes xpMilestoneFlash {
+  0%   { opacity: 0; transform: scale(0.8); }
+  20%  { opacity: 1; transform: scale(1.05); }
+  80%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+.xp-milestone-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5000;
+  padding: 18px 36px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  animation: xpMilestoneFlash 2s ease both;
+  box-shadow: 0 20px 60px rgba(14,163,127,0.5);
+}
+.xp-milestone-popup small {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* ── Match Quality Indicator Pills ───────────────────────────────── */
+.match-quality-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.match-quality-pill.high {
+  background: rgba(14, 163, 127, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(14, 163, 127, 0.3);
+}
+.match-quality-pill.medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.match-quality-pill.low {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+/* ── Glassmorphism Tooltip ───────────────────────────────────────── */
+[data-tip] {
+  position: relative;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 100;
+}
+[data-tip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────── */
+body.dark-mode .match-timer {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(255,255,255,0.07);
+}
+body.dark-mode .audio-bar { background: #34d399; }
+body.dark-mode .audio-visualizer.is-speaking .audio-bar {
+  background: linear-gradient(to top, #34d399, #60a5fa);
+}

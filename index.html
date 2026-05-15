@@ -416,8 +416,13 @@
                   <span class="video-match-label" id="matchHeadline">No active match</span>
                 </div>
                 <div class="video-hud-right">
+                  <span id="matchQualityPill" class="match-quality-pill low" hidden>Ready</span>
                   <span class="video-quality-tag" id="matchQuality">Ready</span>
-                  <span class="video-timer-pill" id="callTimer">0:00</span>
+                  <span class="match-timer" id="matchTimerWrap" hidden>
+                    <span class="match-timer-dot"></span>
+                    <span id="matchTimerDisplay">00:00</span>
+                  </span>
+                  <div class="audio-visualizer" id="audioVisualizer" aria-hidden="true"></div>
                 </div>
               </div>
 
@@ -445,9 +450,9 @@
 
               <!-- Floating controls bar -->
               <div class="video-controls-bar">
-                <button class="vc-btn" id="muteButton" type="button">Mute</button>
-                <button class="vc-btn" id="cameraButton" type="button">Camera Off</button>
-                <button class="vc-btn vc-next" id="nextMatchButton" type="button">Next</button>
+                <button class="vc-btn" id="muteButton" type="button" data-tip="Toggle mic (M)">Mute</button>
+                <button class="vc-btn" id="cameraButton" type="button" data-tip="Toggle camera (C)">Camera Off</button>
+                <button class="vc-btn vc-next" id="nextMatchButton" type="button" data-tip="Next match (N)">Next</button>
                 <button class="vc-btn vc-danger" id="reportButton" type="button">Report</button>
               </div>
             </div>

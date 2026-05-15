@@ -2195,3 +2195,165 @@ function createTypingIndicator() {
 
 // Expose so the typing-event handler can swap in the animated dots
 window.createTypingIndicator = createTypingIndicator;
+
+// ── Audio Visualizer ─────────────────────────────────────────────────────────
+
+(function initAudioVisualizer() {
+  const container = document.getElementById("audioVisualizer");
+  if (!container) return;
+
+  let analyser = null;
+  let dataArr  = null;
+  let rafId    = null;
+  let isActive = false;
+
+  function buildBars() {
+    container.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const bar = document.createElement("div");
+      bar.className = "audio-bar";
+      container.appendChild(bar);
+    }
+  }
+  buildBars();
+
+  function startVisualization(stream) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 32;
+      source.connect(analyser);
+      dataArr = new Uint8Array(analyser.frequencyBinCount);
+      isActive = true;
+      container.classList.remove("is-muted");
+      animateFrame();
+    } catch (e) { /* audio ctx not available */ }
+  }
+
+  function animateFrame() {
+    if (!isActive || !analyser) return;
+    analyser.getByteFrequencyData(dataArr);
+    const bars = container.querySelectorAll(".audio-bar");
+    bars.forEach((bar, i) => {
+      const val = dataArr[Math.floor(i * dataArr.length / bars.length)] || 0;
+      const h = Math.max(3, (val / 255) * 20);
+      bar.style.height = h + "px";
+    });
+    const avg = dataArr.reduce((a, b) => a + b, 0) / dataArr.length;
+    container.classList.toggle("is-speaking", avg > 20);
+    rafId = requestAnimationFrame(animateFrame);
+  }
+
+  function stopVisualization() {
+    isActive = false;
+    cancelAnimationFrame(rafId);
+    analyser = null;
+    container.classList.add("is-muted");
+    container.querySelectorAll(".audio-bar").forEach(b => b.style.height = "3px");
+  }
+
+  // Hook into state.stream changes
+  const origEnsure = window.__ensureLocalStream;
+  window._audioViz = { start: startVisualization, stop: stopVisualization };
+})();
+
+// ── Match Timer ──────────────────────────────────────────────────────────────
+
+(function initMatchTimer() {
+  const el = document.getElementById("matchTimerDisplay");
+  if (!el) return;
+
+  function fmt(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+  let start = null;
+  let raf   = null;
+
+  function tick() {
+    if (!start) return;
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    el.textContent = fmt(elapsed);
+    el.closest(".match-timer")?.classList.toggle("long", elapsed > 300);
+    raf = requestAnimationFrame(tick);
+  }
+
+  window._matchTimer = {
+    start() { start = Date.now(); tick(); },
+    stop()  { start = null; cancelAnimationFrame(raf); el.textContent = "00:00"; },
+  };
+})();
+
+// ── Floating Emoji Reaction ──────────────────────────────────────────────────
+
+function floatReaction(emoji, originEl) {
+  const rect = originEl
+    ? originEl.getBoundingClientRect()
+    : { left: window.innerWidth / 2, top: window.innerHeight * 0.6, width: 0, height: 0 };
+  const el = document.createElement("div");
+  el.className = "reaction-float";
+  el.textContent = emoji;
+  el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 40) + "px";
+  el.style.top  = (rect.top + rect.height / 2) + "px";
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+window.floatReaction = floatReaction;
+
+// ── Profile Card Mouse-follow Glow ───────────────────────────────────────────
+
+(function initProfileCardGlow() {
+  document.addEventListener("mousemove", (e) => {
+    document.querySelectorAll(".profile-card").forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(1);
+      const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1);
+      card.style.setProperty("--mx", x + "%");
+      card.style.setProperty("--my", y + "%");
+    });
+  }, { passive: true });
+})();
+
+// ── XP Milestone Popup ───────────────────────────────────────────────────────
+
+function showXpMilestonePopup(level, rankTitle) {
+  const el = document.createElement("div");
+  el.className = "xp-milestone-popup";
+  el.innerHTML = `Level ${level}<small>${rankTitle}</small>`;
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+window.showXpMilestonePopup = showXpMilestonePopup;
+
+// ── data-tip Tooltip via CSS attr() (no JS needed) ───────────────────────────
+// Add data-tip="text" to any element; CSS handles the rest.
+// This function is a helper to set them programmatically.
+function setTip(el, text) {
+  if (!el) return;
+  if (text) el.setAttribute("data-tip", text);
+  else el.removeAttribute("data-tip");
+}
+window.setTip = setTip;
+
+// ── Match Quality Pill Builder ────────────────────────────────────────────────
+
+function renderMatchQuality(interests) {
+  const el = document.getElementById("matchQualityPill");
+  if (!el) return;
+  if (!interests || interests.length === 0) {
+    el.className = "match-quality-pill low";
+    el.textContent = "Random match";
+    return;
+  }
+  if (interests.length >= 3) {
+    el.className = "match-quality-pill high";
+    el.textContent = `${interests.length} shared interests`;
+  } else {
+    el.className = "match-quality-pill medium";
+    el.textContent = `${interests.length} shared interest${interests.length > 1 ? "s" : ""}`;
+  }
+}
+window.renderMatchQuality = renderMatchQuality;
