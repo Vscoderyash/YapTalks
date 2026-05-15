@@ -2042,3 +2042,156 @@ function celebrateLevelUp(newLevel) {
 
 // Expose so XP handling code can call it
 window.celebrateLevelUp = celebrateLevelUp;
+
+// ── Scroll-Reveal (Intersection Observer) ────────────────────────────────────
+
+(function initScrollReveal() {
+  if (!("IntersectionObserver" in window)) {
+    // Fallback: just show everything
+    document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+    return;
+  }
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          io.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+  );
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+
+  // Also observe any dynamically added .reveal elements
+  new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      m.addedNodes.forEach((node) => {
+        if (node.nodeType !== 1) return;
+        if (node.classList?.contains("reveal")) io.observe(node);
+        node.querySelectorAll?.(".reveal").forEach((el) => io.observe(el));
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+})();
+
+// ── Topbar Scroll-Shrink ──────────────────────────────────────────────────────
+
+(function initTopbarShrink() {
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+  const onScroll = () => topbar.classList.toggle("is-scrolled", window.scrollY > 20);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+})();
+
+// ── Animated Number Counter ──────────────────────────────────────────────────
+
+function animateCounter(el, targetStr) {
+  const target = parseInt(targetStr.replace(/[^0-9]/g, ""), 10);
+  if (isNaN(target)) { el.textContent = targetStr; return; }
+
+  const current = parseInt(el.textContent.replace(/[^0-9]/g, ""), 10) || 0;
+  if (current === target) return;
+
+  const diff = target - current;
+  const duration = Math.min(Math.abs(diff) * 18, 800);
+  const steps = Math.min(Math.abs(diff), 40);
+  const stepTime = duration / steps;
+  let step = 0;
+
+  el.classList.add("counting");
+  const timer = setInterval(() => {
+    step++;
+    const progress = step / steps;
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
+    el.textContent = Math.round(current + diff * eased).toLocaleString();
+    if (step >= steps) {
+      clearInterval(timer);
+      el.textContent = target.toLocaleString();
+      el.classList.remove("counting");
+    }
+  }, stepTime);
+}
+
+// Patch online-count socket event to use animated counter
+const _origOnlineUpdate = window.__onlineCountHandler;
+(function patchOnlineCount() {
+  const countEl  = document.getElementById("onlineCount");
+  const heroEl   = document.getElementById("heroStatOnline");
+  if (!countEl) return;
+
+  // Watch for text changes via MutationObserver and animate
+  const animateIfChanged = (el) => {
+    if (!el) return;
+    let last = el.textContent;
+    new MutationObserver(() => {
+      const now = el.textContent;
+      if (now !== last && /^\d/.test(now)) {
+        animateCounter(el, now);
+        last = now;
+      }
+    }).observe(el, { childList: true, characterData: true, subtree: true });
+  };
+  animateIfChanged(countEl);
+  animateIfChanged(heroEl);
+})();
+
+// ── Leaderboard Skeleton Loader ──────────────────────────────────────────────
+
+function showLeaderboardSkeleton(container, rows = 5) {
+  if (!container) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < rows; i++) {
+    const item = document.createElement("div");
+    item.className = "leaderboard-skeleton-item";
+    item.innerHTML = `
+      <span class="skeleton skeleton-avatar"></span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+        <span class="skeleton skeleton-line w-3-4"></span>
+        <span class="skeleton skeleton-line w-1-2"></span>
+      </div>
+      <span class="skeleton skeleton-line w-1-3" style="height:20px;border-radius:20px"></span>`;
+    frag.appendChild(item);
+  }
+  container.replaceChildren(frag);
+}
+
+// Expose so leaderboard render can call it before data loads
+window.showLeaderboardSkeleton = showLeaderboardSkeleton;
+
+// ── Video Stage Connecting Pulse ──────────────────────────────────────────────
+
+(function initStagePulse() {
+  const remoteStage = document.querySelector(".video-stage:not(#localStage)") ||
+                      document.getElementById("remoteStage");
+  if (!remoteStage) return;
+
+  // Watch matchHeadline text to derive connection state
+  const headline = document.getElementById("matchHeadline");
+  if (!headline) return;
+
+  const update = () => {
+    const text = headline.textContent.toLowerCase();
+    const connecting = text.includes("searching") || text.includes("connecting") || text.includes("queue");
+    const connected  = text.includes("matched") || text.includes("connected");
+    remoteStage.classList.toggle("is-connecting", connecting && !connected);
+    remoteStage.classList.toggle("peer-connected", connected);
+  };
+  update();
+  new MutationObserver(update).observe(headline, { childList: true, characterData: true, subtree: true });
+})();
+
+// ── Typing Indicator Helper ───────────────────────────────────────────────────
+
+function createTypingIndicator() {
+  const el = document.createElement("div");
+  el.className = "typing-indicator";
+  el.setAttribute("aria-label", "Stranger is typing");
+  el.innerHTML = `<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>`;
+  return el;
+}
+
+// Expose so the typing-event handler can swap in the animated dots
+window.createTypingIndicator = createTypingIndicator;
