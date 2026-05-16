@@ -38,10 +38,9 @@ while true; do
     echo "$RECENT"
     echo ""
 
-    claude \
-      --print \
-      --dangerously-skip-permissions \
-      "You are working on the YapTalks random-video-chat app at /home/user/YapTalks on branch claude/advance-progression-Yaeos.
+    PROMPT_FILE=$(mktemp /tmp/yap-enhance-XXXXX.txt)
+    cat > "$PROMPT_FILE" <<PROMPT
+You are working on the YapTalks random-video-chat app at /home/user/YapTalks on branch $BRANCH.
 
 Recent git history (do NOT repeat these):
 $RECENT
@@ -66,7 +65,14 @@ Rules:
 - Commit message format: feat(pass-N): <concise what + why>
 - Push to origin/$BRANCH with: git push -u origin $BRANCH
 - Never blindly add emojis.
-- End your response with: DONE: <one-line summary of what you implemented>"
+- End your response with: DONE: <one-line summary of what you implemented>
+PROMPT
+
+    claude \
+      --print \
+      --allowedTools "Bash,Edit,Read,Write" \
+      < "$PROMPT_FILE"
+    rm -f "$PROMPT_FILE"
 
     echo "[$(date -u +%FT%TZ)] Enhancement run complete"
   } >> "$LOG" 2>&1
