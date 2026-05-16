@@ -4191,3 +4191,200 @@ body.dark-mode .audio-bar { background: #34d399; }
 body.dark-mode .audio-visualizer.is-speaking .audio-bar {
   background: linear-gradient(to top, #34d399, #60a5fa);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENHANCEMENT PASS 3 — Mobile Responsiveness, Touch Targets,
+   Swipe Gestures, Viewport Fixes, Bottom Nav
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Touch target minimum size (WCAG 2.5.5) ──────────────────────── */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .vc-btn {
+    min-height: 52px;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+  }
+  .ghost-button,
+  .secondary-button,
+  .primary-button {
+    min-height: 48px;
+    padding: 12px 22px;
+  }
+  .tab-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  .send-btn {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* ── Safe-area insets for notched phones ─────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .video-controls-bar,
+  .stage-action-bar {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-left:  max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* ── Mobile bottom navigation ─────────────────────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+}
+@media (max-width: 640px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 800;
+    background: var(--surface);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border-top: 1px solid var(--line);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+  }
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background 0.15s;
+    min-width: 56px;
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .mobile-nav-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mobile-nav-btn.active {
+    color: var(--primary);
+    background: rgba(14, 163, 127, 0.08);
+  }
+  .mobile-nav-btn.active svg { stroke: var(--primary); }
+
+  /* Push content up so bottom nav doesn't cover it */
+  body { padding-bottom: 68px; }
+
+  /* Stack app grid vertically */
+  .app-grid {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0;
+  }
+  .control-panel {
+    display: none; /* shown/hidden by mobile nav JS */
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+  }
+  .control-panel.mobile-visible { display: block; }
+  .video-panel { border-radius: 0; }
+
+  /* Collapse hero section on mobile */
+  .hero-exterior {
+    padding: 20px 16px 16px;
+  }
+  .hero-title { font-size: 1.8rem; }
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  /* Full-width chat input */
+  .chat-compose {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* ── Swipe indicator hint ─────────────────────────────────────────── */
+.swipe-hint {
+  display: none;
+}
+@media (pointer: coarse) and (max-width: 640px) {
+  .swipe-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding: 6px;
+    opacity: 0.6;
+  }
+  .swipe-hint svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: swipeAnim 2s ease-in-out infinite;
+  }
+}
+@keyframes swipeAnim {
+  0%   { transform: translateX(0); }
+  40%  { transform: translateX(6px); }
+  60%  { transform: translateX(-6px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Pinch-zoom prevention for the video stage ───────────────────── */
+.video-stage-wrap {
+  touch-action: none;
+}
+
+/* ── Landscape phone layout ───────────────────────────────────────── */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+  .hero-exterior { display: none; }
+  .feature-strip { display: none; }
+  .topbar { padding-top: 6px; padding-bottom: 6px; }
+  .app-grid {
+    display: grid !important;
+    grid-template-columns: 260px 1fr;
+    height: calc(100dvh - 56px);
+  }
+  body { padding-bottom: 0; }
+  .mobile-bottom-nav { display: none; }
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────── */
+body.dark-mode .mobile-bottom-nav {
+  background: rgba(10, 15, 30, 0.94);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+body.dark-mode .mobile-nav-btn.active {
+  background: rgba(14, 163, 127, 0.1);
+}

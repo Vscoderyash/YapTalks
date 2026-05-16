@@ -1914,6 +1914,7 @@ const toast = (() => {
 (function initHelpModal() {
   const modal   = document.getElementById("helpModal");
   const openBtn = document.getElementById("helpButton");
+  const mobileHelpBtn = document.getElementById("mobileHelpBtn");
   const closeBtn = document.getElementById("helpCloseButton");
   if (!modal) return;
 
@@ -1928,6 +1929,7 @@ const toast = (() => {
   }
 
   openBtn?.addEventListener("click", openHelp);
+  mobileHelpBtn?.addEventListener("click", openHelp);
   closeBtn?.addEventListener("click", closeHelp);
   modal.addEventListener("click", (e) => { if (e.target === modal) closeHelp(); });
   document.addEventListener("keydown", (e) => {
@@ -2357,3 +2359,66 @@ function renderMatchQuality(interests) {
   }
 }
 window.renderMatchQuality = renderMatchQuality;
+
+// ── Mobile Bottom Navigation ──────────────────────────────────────────────────
+
+(function initMobileNav() {
+  const nav = document.getElementById("mobileBottomNav");
+  if (!nav) return;
+
+  const panel     = document.querySelector(".control-panel");
+  const videoWrap = document.querySelector(".video-panel");
+  const chatFeed  = document.getElementById("chatFeed");
+  const btns      = nav.querySelectorAll(".mobile-nav-btn");
+
+  function activate(name) {
+    btns.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+    if (name === "chat" || name === "video") {
+      panel?.classList.remove("mobile-visible");
+      videoWrap?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (name === "sidebar") {
+      panel?.classList.add("mobile-visible");
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (name === "match") {
+      panel?.classList.remove("mobile-visible");
+      document.getElementById("findMatchButton")?.click();
+    }
+  }
+
+  btns.forEach((btn) => {
+    btn.addEventListener("click", () => activate(btn.dataset.tab));
+  });
+
+  // Default to video tab
+  activate("video");
+})();
+
+// ── Swipe Gesture — next match on left swipe over video stage ────────────────
+
+(function initSwipeGesture() {
+  const stage = document.querySelector(".video-stage-wrap") ||
+                document.querySelector(".video-panel");
+  if (!stage) return;
+
+  let startX = 0;
+  let startY = 0;
+
+  stage.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  stage.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    // Horizontal swipe must dominate and exceed 60px
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) {
+        // Left swipe → next match
+        document.getElementById("nextMatchButton")?.click();
+        if (typeof toast !== "undefined") toast.info("Swiped to next match", 2000);
+      }
+      // Right swipe could be "go back" — no-op for now
+    }
+  }, { passive: true });
+})();
