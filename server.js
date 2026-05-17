@@ -51,17 +51,31 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── ETag support ────────────────────────────────────────────────────────────
+app.set("etag", "strong");
+
 // ─── Static files with cache headers ─────────────────────────────────────────
 app.use(
   express.static(path.join(__dirname), {
     maxAge: isProduction ? "1h" : "0",
+    etag: true,
+    lastModified: true,
     setHeaders: (res, filepath) => {
-      if (filepath.endsWith(".svg") || filepath.endsWith(".png")) {
+      // Immutable assets (hashed or versioned)
+      if (filepath.endsWith(".svg") || filepath.endsWith(".png") || filepath.endsWith(".ico")) {
         res.setHeader("Cache-Control", "public, max-age=86400, immutable");
       }
+      // Manifest always fresh
       if (filepath.endsWith(".webmanifest")) {
         res.setHeader("Content-Type", "application/manifest+json");
+        res.setHeader("Cache-Control", "public, max-age=3600");
       }
+      // CSS/JS with revalidation
+      if (filepath.endsWith(".css") || filepath.endsWith(".js")) {
+        res.setHeader("Cache-Control", isProduction ? "public, max-age=3600, must-revalidate" : "no-store");
+      }
+      // Vary for content negotiation
+      res.setHeader("Vary", "Accept-Encoding");
     },
   }),
 );
@@ -349,6 +363,42 @@ app.get("/stats", (req, res) => {
 app.get("/api/online", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json({ online: io.engine.clientsCount });
+});
+
+// ─── Public leaderboard endpoint (top 20, cached 30s) ────────────────────────
+app.get("/api/leaderboard", (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+  const entries = Array.from(leaderboard.values())
+    .sort((a, b) => (b.xp || 0) - (a.xp || 0))
+    .slice(0, limit)
+    .map((u, i) => ({
+      rank: i + 1,
+      name: u.name,
+      xp: u.xp || 0,
+      level: u.level || 1,
+      prestige: u.prestige || 0,
+      streak: u.streakDays || 0,
+    }));
+  res.json({ leaderboard: entries, total: leaderboard.size, cached: new Date().toISOString() });
+});
+
+// ─── Metrics endpoint (internal — requires secret header in prod) ─────────────
+app.get("/api/metrics", (req, res) => {
+  if (isProduction && req.headers["x-internal-secret"] !== process.env.METRICS_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    ...metrics,
+    online: io.engine.clientsCount,
+    queues: Object.fromEntries(Object.entries(queues).map(([k, v]) => [k, v.length])),
+    activeMatches: activeMatches.size / 2,
+    bannedIps: ipConnectionLog.size,
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    memory: process.memoryUsage(),
+    pid: process.pid,
+  });
 });
 
 // ─── Online count broadcast (every 5s) ───────────────────────────────────────
