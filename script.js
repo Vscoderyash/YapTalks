@@ -2422,3 +2422,142 @@ window.renderMatchQuality = renderMatchQuality;
     }
   }, { passive: true });
 })();
+
+// ── Accessibility: Focus Trap ─────────────────────────────────────────────────
+
+function trapFocus(container) {
+  const focusable = container.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+  );
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+  if (!first) return () => {};
+
+  function onKey(e) {
+    if (e.key !== "Tab") return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  container.addEventListener("keydown", onKey);
+  document.body.classList.add("focus-trap-active");
+  first.focus();
+
+  return function release() {
+    container.removeEventListener("keydown", onKey);
+    document.body.classList.remove("focus-trap-active");
+  };
+}
+
+// Wire focus trap to help modal
+(function wireHelpTrap() {
+  const modal    = document.getElementById("helpModal");
+  const closeBtn = document.getElementById("helpCloseButton");
+  if (!modal) return;
+  let releaseTrap = null;
+
+  const orig = window._helpModal;
+  window._helpModal = {
+    open() {
+      orig?.open();
+      releaseTrap?.();
+      releaseTrap = trapFocus(modal.querySelector(".help-card") || modal);
+    },
+    close() {
+      orig?.close();
+      releaseTrap?.();
+      releaseTrap = null;
+    },
+  };
+})();
+
+// ── Accessibility: ARIA Live Region Flash ─────────────────────────────────────
+
+function flashLiveRegion(el) {
+  if (!el) return;
+  el.classList.remove("flash");
+  void el.offsetWidth; // reflow
+  el.classList.add("flash");
+  el.addEventListener("animationend", () => el.classList.remove("flash"), { once: true });
+}
+
+// ── Accessibility: Announce to Screen Readers ─────────────────────────────────
+
+const announce = (() => {
+  let el = document.getElementById("srAnnounce");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "srAnnounce";
+    el.setAttribute("aria-live", "polite");
+    el.setAttribute("aria-atomic", "true");
+    el.className = "sr-only";
+    document.body.appendChild(el);
+  }
+  return (msg, priority = "polite") => {
+    el.setAttribute("aria-live", priority);
+    el.textContent = "";
+    requestAnimationFrame(() => { el.textContent = msg; });
+  };
+})();
+
+window.announce = announce;
+
+// ── Accessibility: Auth form inline validation ────────────────────────────────
+
+(function initAuthInlineValidation() {
+  const emailInput = document.getElementById("authEmail");
+  const passInput  = document.getElementById("authPassword");
+  if (!emailInput || !passInput) return;
+
+  function validateEmail(val) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  }
+
+  emailInput.addEventListener("blur", () => {
+    const ok = !emailInput.value || validateEmail(emailInput.value);
+    emailInput.setAttribute("aria-invalid", ok ? "false" : "true");
+    emailInput.classList.toggle("is-error", !ok);
+    let errEl = emailInput.parentElement.querySelector(".field-error");
+    if (!ok) {
+      if (!errEl) {
+        errEl = document.createElement("p");
+        errEl.className = "field-error";
+        errEl.id = "emailError";
+        emailInput.parentElement.appendChild(errEl);
+        emailInput.setAttribute("aria-describedby", "emailError");
+      }
+      errEl.textContent = "Enter a valid email address.";
+    } else {
+      errEl?.remove();
+      emailInput.removeAttribute("aria-describedby");
+    }
+  });
+
+  passInput.addEventListener("input", () => {
+    const ok = passInput.value.length === 0 || passInput.value.length >= 6;
+    passInput.setAttribute("aria-invalid", ok ? "false" : "true");
+    passInput.classList.toggle("is-error", !ok);
+  });
+})();
+
+// ── Announce match events to screen readers ────────────────────────────────────
+
+(function patchAddMessageForA11y() {
+  const chatFeed = document.getElementById("chatFeed");
+  if (!chatFeed) return;
+
+  // Observe new chat messages and announce system ones
+  new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      m.addedNodes.forEach((node) => {
+        if (node.nodeType !== 1) return;
+        if (node.classList?.contains("system-message") || node.dataset?.author === "System") {
+          announce(node.textContent?.trim(), "polite");
+        }
+      });
+    });
+  }).observe(chatFeed, { childList: true });
+})();
