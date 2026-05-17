@@ -31,8 +31,30 @@
   <link rel="preconnect" href="https://yaptalks.onrender.com" crossorigin>
   <link rel="dns-prefetch" href="https://yaptalks.onrender.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
-  <link rel="preload" href="styles.css" as="style">
-  <link rel="preload" href="script.js" as="script">
+  <link rel="preload" href="styles.css" as="style" fetchpriority="high">
+  <link rel="preload" href="script.js" as="script" fetchpriority="low">
+  <script>
+    /* Pre-paint: honor Save-Data / slow links, idle-prefetch likely next page */
+    (function () {
+      try {
+        var c = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+        var lean = !!c && (c.saveData === true || /(^|\b)(slow-2g|2g)$/.test(c.effectiveType || ""));
+        var de = document.documentElement;
+        if (lean) {
+          de.classList.add("data-saver");
+          return;
+        }
+        var idle = window.requestIdleCallback || function (cb) { return setTimeout(cb, 1500); };
+        idle(function () {
+          if (document.querySelector('link[rel="prefetch"][href="privacy.html"]')) return;
+          var l = document.createElement("link");
+          l.rel = "prefetch";
+          l.href = "privacy.html";
+          document.head.appendChild(l);
+        });
+      } catch (e) {}
+    })();
+  </script>
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet"
