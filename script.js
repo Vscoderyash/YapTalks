@@ -2561,3 +2561,40 @@ window.announce = announce;
     });
   }).observe(chatFeed, { childList: true });
 })();
+
+// ── Performance: Image Lazy Loading ───────────────────────────────────────────
+
+(function initLazyImages() {
+  if (!("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const img = e.target;
+      if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; }
+      if (img.dataset.srcset) { img.srcset = img.dataset.srcset; delete img.dataset.srcset; }
+      io.unobserve(img);
+    });
+  }, { rootMargin: "200px" });
+  document.querySelectorAll("img[data-src]").forEach((img) => io.observe(img));
+})();
+
+// ── Performance: Idle-time prefetch of Socket.IO ──────────────────────────────
+
+(function prefetchSocketIO() {
+  if (!("requestIdleCallback" in window)) return;
+  requestIdleCallback(() => {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = "/socket.io/socket.io.js";
+    document.head.appendChild(link);
+  }, { timeout: 3000 });
+})();
+
+// ── Performance: Font load observer ───────────────────────────────────────────
+
+(function trackFontLoad() {
+  if (!document.fonts) return;
+  document.fonts.ready.then(() => {
+    document.documentElement.classList.add("fonts-loaded");
+  });
+})();

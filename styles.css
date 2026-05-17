@@ -4529,3 +4529,14 @@ a:not([class]):hover {
   outline-offset: 2px;
   background: rgba(14, 163, 127, 0.05);
 }
+
+/* ── Font loading flash prevention ──────────────────────────────── */
+html:not(.fonts-loaded) body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── Lazy-image placeholder ──────────────────────────────────────── */
+img[data-src] {
+  background: var(--line);
+  min-height: 40px;
+}

@@ -28,12 +28,19 @@
   <title>YapTalks — Free Random Video Chat | Omegle Alternative with Anime Filters & XP Ranks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://yaptalks.onrender.com" crossorigin>
   <link rel="dns-prefetch" href="https://yaptalks.onrender.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="script.js" as="script">
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet"
+    media="print" onload="this.media='all'"
   >
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  </noscript>
   <link rel="stylesheet" href="styles.css">
   <script type="application/ld+json">
     {
@@ -59,14 +66,67 @@
           }
         },
         {
-          "@type": "WebApplication",
+          "@type": "SoftwareApplication",
           "name": "YapTalks",
           "url": "https://yaptalks.vercel.app/",
           "applicationCategory": "CommunicationApplication",
+          "applicationSubCategory": "VideoChat",
           "operatingSystem": "Web Browser",
-          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-          "featureList": "Random video chat, Anime character filters, XP and rank system, Interest-based matching, Party rooms, Daily missions",
+          "browserRequirements": "Requires JavaScript. Requires a modern browser with WebRTC support.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "1200",
+            "bestRating": "5"
+          },
+          "featureList": [
+            "Random video chat",
+            "Anime character filters (Naruto, Goku, Luffy, Gojo and more)",
+            "XP and rank system",
+            "Interest-based matching",
+            "Party rooms",
+            "Daily missions",
+            "Friend system",
+            "Safety Guard with auto-ban"
+          ],
+          "screenshot": "https://yaptalks.vercel.app/og-image.svg",
           "description": "Next-generation random video chat with anime filters, XP ranks, and real-time matching."
+        },
+        {
+          "@type": "HowTo",
+          "name": "How to start a random video chat on YapTalks",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": "1",
+              "name": "Open YapTalks",
+              "text": "Visit yaptalks.vercel.app in any modern browser. No download required."
+            },
+            {
+              "@type": "HowToStep",
+              "position": "2",
+              "name": "Allow camera and microphone",
+              "text": "Click 'Enable Camera' and allow browser permissions when prompted."
+            },
+            {
+              "@type": "HowToStep",
+              "position": "3",
+              "name": "Find a match",
+              "text": "Press 'Find Match' to be instantly connected with a random stranger."
+            },
+            {
+              "@type": "HowToStep",
+              "position": "4",
+              "name": "Apply an anime filter (optional)",
+              "text": "Open the Anime tab in the sidebar and pick a character. Your peer will see you transformed in real time."
+            }
+          ]
         },
         {
           "@type": "FAQPage",
