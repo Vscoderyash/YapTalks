@@ -3749,3 +3749,822 @@ body.dark-mode #helpButton {
 body.dark-mode #helpButton:hover {
   background: rgba(14, 163, 127, 0.12);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENHANCEMENT PASS 1 — Scroll-reveal, Skeletons, Stage Pulse,
+   Animated Counters, Micro-interactions
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Scroll-reveal base ──────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.reveal-left  { transform: translateX(-28px); }
+.reveal.reveal-right { transform: translateX(28px); }
+.reveal.reveal-scale { transform: scale(0.92); }
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+/* Stagger delays for sibling reveals */
+.reveal:nth-child(1) { transition-delay: 0ms; }
+.reveal:nth-child(2) { transition-delay: 75ms; }
+.reveal:nth-child(3) { transition-delay: 150ms; }
+.reveal:nth-child(4) { transition-delay: 225ms; }
+.reveal:nth-child(5) { transition-delay: 300ms; }
+.reveal:nth-child(6) { transition-delay: 375ms; }
+
+/* ── Skeleton loading shimmer ─────────────────────────────────────── */
+@keyframes skeletonShimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.12) 25%,
+    rgba(148, 163, 184, 0.24) 50%,
+    rgba(148, 163, 184, 0.12) 75%
+  );
+  background-size: 400px 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+.skeleton-line {
+  height: 14px;
+  margin: 6px 0;
+  border-radius: 6px;
+}
+.skeleton-line.w-full  { width: 100%; }
+.skeleton-line.w-3-4   { width: 75%; }
+.skeleton-line.w-1-2   { width: 50%; }
+.skeleton-line.w-1-3   { width: 33%; }
+.skeleton-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.leaderboard-skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+/* ── Video stage connecting pulse ─────────────────────────────────── */
+@keyframes stagePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(14, 163, 127, 0); }
+  50%       { box-shadow: 0 0 0 12px rgba(14, 163, 127, 0.18); }
+}
+.video-stage.is-connecting {
+  animation: stagePulse 1.8s ease-in-out infinite;
+  border-color: rgba(14, 163, 127, 0.5) !important;
+}
+.video-stage.peer-connected {
+  border-color: rgba(14, 163, 127, 0.6) !important;
+  transition: border-color 0.6s ease;
+}
+
+/* ── Animated online counter ──────────────────────────────────────── */
+#onlineCount,
+#heroStatOnline {
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#onlineCount.counting,
+#heroStatOnline.counting {
+  transform: scale(1.15);
+}
+
+/* ── Button press micro-interaction ──────────────────────────────── */
+.primary-button:active,
+.secondary-button:active,
+.ghost-button:active,
+.vc-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Chat input expand on focus ───────────────────────────────────── */
+#chatInput:focus {
+  box-shadow: 0 0 0 2px rgba(14, 163, 127, 0.35),
+              0 4px 16px rgba(14, 163, 127, 0.12);
+  transition: box-shadow 0.25s ease;
+}
+
+/* ── Panel hover lift ─────────────────────────────────────────────── */
+.panel {
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.panel:hover {
+  box-shadow: var(--shadow), 0 0 0 1px rgba(14, 163, 127, 0.08);
+}
+
+/* ── Topbar scroll-shrink ─────────────────────────────────────────── */
+.topbar {
+  transition: padding 0.3s ease, backdrop-filter 0.3s ease,
+              box-shadow 0.3s ease;
+}
+.topbar.is-scrolled {
+  box-shadow: 0 2px 24px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(40px) saturate(2);
+  -webkit-backdrop-filter: blur(40px) saturate(2);
+}
+
+/* ── Match card enter animation ───────────────────────────────────── */
+@keyframes matchCardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.match-info-bar {
+  animation: matchCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── XP bar fill animation ────────────────────────────────────────── */
+.xp-bar-fill {
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* ── Typing indicator dots ────────────────────────────────────────── */
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%            { transform: translateY(-5px); opacity: 1; }
+}
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 0;
+}
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Focus-visible ring (accessibility) ──────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+button:focus-visible { border-radius: 8px; }
+
+/* ── Smooth page transitions via view-transition API ─────────────── */
+@view-transition { navigation: auto; }
+::view-transition-old(root) {
+  animation: 0.25s ease both fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.25s ease both fade-in;
+}
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes fade-in  { from { opacity: 0; } }
+
+/* ── Dark mode overrides ──────────────────────────────────────────── */
+body.dark-mode .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(51, 65, 85, 0.4) 25%,
+    rgba(71, 85, 105, 0.55) 50%,
+    rgba(51, 65, 85, 0.4) 75%
+  );
+  background-size: 400px 100%;
+}
+body.dark-mode .leaderboard-skeleton-item {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(255,255,255,0.05);
+}
+body.dark-mode .typing-indicator {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255,255,255,0.08);
+}
+body.dark-mode .typing-dot { background: #64748b; }
+body.dark-mode .panel:hover {
+  box-shadow: var(--shadow), 0 0 0 1px rgba(14, 163, 127, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENHANCEMENT PASS 2 — Audio Visualizer, Match Timer, Prestige Glow,
+   Party Room Badge, Reaction Burst, Profile Card
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Audio Visualizer Bar ─────────────────────────────────────────── */
+.audio-visualizer {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+  padding: 0 2px;
+}
+.audio-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--primary);
+  min-height: 3px;
+  transition: height 0.1s ease;
+  animation: audioIdle 1.6s ease-in-out infinite;
+}
+.audio-bar:nth-child(1) { animation-delay: 0.0s; }
+.audio-bar:nth-child(2) { animation-delay: 0.1s; }
+.audio-bar:nth-child(3) { animation-delay: 0.2s; }
+.audio-bar:nth-child(4) { animation-delay: 0.3s; }
+.audio-bar:nth-child(5) { animation-delay: 0.2s; }
+.audio-bar:nth-child(6) { animation-delay: 0.1s; }
+.audio-bar:nth-child(7) { animation-delay: 0.0s; }
+@keyframes audioIdle {
+  0%, 100% { height: 3px;  opacity: 0.5; }
+  50%       { height: 14px; opacity: 1;   }
+}
+.audio-visualizer.is-muted .audio-bar {
+  height: 3px !important;
+  opacity: 0.25;
+  animation: none;
+}
+.audio-visualizer.is-speaking .audio-bar {
+  background: linear-gradient(to top, var(--primary), var(--accent));
+}
+
+/* ── Match Timer ─────────────────────────────────────────────────── */
+.match-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+.match-timer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: bannerPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.match-timer.long { color: var(--primary); border-color: rgba(14,163,127,0.3); }
+
+/* ── Prestige Glow on Rank Badge ─────────────────────────────────── */
+.rank-badge.prestige-1 { box-shadow: 0 0 14px rgba(14, 163, 127, 0.55); }
+.rank-badge.prestige-2 { box-shadow: 0 0 18px rgba(15, 110, 233, 0.6); }
+.rank-badge.prestige-3 {
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.65);
+  background: linear-gradient(135deg, #7c3aed, #db2777) !important;
+}
+@keyframes prestigePulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.4); }
+  50%       { box-shadow: 0 0 28px rgba(168,85,247,0.75); }
+}
+.rank-badge.prestige-3 { animation: prestigePulse 2.5s ease-in-out infinite; }
+
+/* ── Party Room Live Badge ───────────────────────────────────────── */
+.party-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #0f6ee9);
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.party-live-badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: bannerPulse 1.2s ease-in-out infinite;
+}
+
+/* ── Emoji Reaction Burst ────────────────────────────────────────── */
+@keyframes reactionFloat {
+  0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-110px) scale(1.3) rotate(15deg); }
+}
+.reaction-float {
+  position: fixed;
+  font-size: 1.6rem;
+  pointer-events: none;
+  z-index: 4500;
+  user-select: none;
+  animation: reactionFloat 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── Profile Card Hover ──────────────────────────────────────────── */
+.profile-card {
+  position: relative;
+  overflow: hidden;
+}
+.profile-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%),
+    rgba(14,163,127,0.1) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.profile-card:hover::after { opacity: 1; }
+
+/* ── XP Milestone Flash ──────────────────────────────────────────── */
+@keyframes xpMilestoneFlash {
+  0%   { opacity: 0; transform: scale(0.8); }
+  20%  { opacity: 1; transform: scale(1.05); }
+  80%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+.xp-milestone-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5000;
+  padding: 18px 36px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  animation: xpMilestoneFlash 2s ease both;
+  box-shadow: 0 20px 60px rgba(14,163,127,0.5);
+}
+.xp-milestone-popup small {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* ── Match Quality Indicator Pills ───────────────────────────────── */
+.match-quality-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.match-quality-pill.high {
+  background: rgba(14, 163, 127, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(14, 163, 127, 0.3);
+}
+.match-quality-pill.medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.match-quality-pill.low {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+/* ── Glassmorphism Tooltip ───────────────────────────────────────── */
+[data-tip] {
+  position: relative;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 100;
+}
+[data-tip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────── */
+body.dark-mode .match-timer {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(255,255,255,0.07);
+}
+body.dark-mode .audio-bar { background: #34d399; }
+body.dark-mode .audio-visualizer.is-speaking .audio-bar {
+  background: linear-gradient(to top, #34d399, #60a5fa);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENHANCEMENT PASS 3 — Mobile Responsiveness, Touch Targets,
+   Swipe Gestures, Viewport Fixes, Bottom Nav
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Touch target minimum size (WCAG 2.5.5) ──────────────────────── */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .vc-btn {
+    min-height: 52px;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+  }
+  .ghost-button,
+  .secondary-button,
+  .primary-button {
+    min-height: 48px;
+    padding: 12px 22px;
+  }
+  .tab-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  .send-btn {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* ── Safe-area insets for notched phones ─────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .video-controls-bar,
+  .stage-action-bar {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-left:  max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* ── Mobile bottom navigation ─────────────────────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+}
+@media (max-width: 640px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 800;
+    background: var(--surface);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border-top: 1px solid var(--line);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+  }
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background 0.15s;
+    min-width: 56px;
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .mobile-nav-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mobile-nav-btn.active {
+    color: var(--primary);
+    background: rgba(14, 163, 127, 0.08);
+  }
+  .mobile-nav-btn.active svg { stroke: var(--primary); }
+
+  /* Push content up so bottom nav doesn't cover it */
+  body { padding-bottom: 68px; }
+
+  /* Stack app grid vertically */
+  .app-grid {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0;
+  }
+  .control-panel {
+    display: none; /* shown/hidden by mobile nav JS */
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+  }
+  .control-panel.mobile-visible { display: block; }
+  .video-panel { border-radius: 0; }
+
+  /* Collapse hero section on mobile */
+  .hero-exterior {
+    padding: 20px 16px 16px;
+  }
+  .hero-title { font-size: 1.8rem; }
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  /* Full-width chat input */
+  .chat-compose {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* ── Swipe indicator hint ─────────────────────────────────────────── */
+.swipe-hint {
+  display: none;
+}
+@media (pointer: coarse) and (max-width: 640px) {
+  .swipe-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding: 6px;
+    opacity: 0.6;
+  }
+  .swipe-hint svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: swipeAnim 2s ease-in-out infinite;
+  }
+}
+@keyframes swipeAnim {
+  0%   { transform: translateX(0); }
+  40%  { transform: translateX(6px); }
+  60%  { transform: translateX(-6px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Pinch-zoom prevention for the video stage ───────────────────── */
+.video-stage-wrap {
+  touch-action: none;
+}
+
+/* ── Landscape phone layout ───────────────────────────────────────── */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+  .hero-exterior { display: none; }
+  .feature-strip { display: none; }
+  .topbar { padding-top: 6px; padding-bottom: 6px; }
+  .app-grid {
+    display: grid !important;
+    grid-template-columns: 260px 1fr;
+    height: calc(100dvh - 56px);
+  }
+  body { padding-bottom: 0; }
+  .mobile-bottom-nav { display: none; }
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────── */
+body.dark-mode .mobile-bottom-nav {
+  background: rgba(10, 15, 30, 0.94);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+body.dark-mode .mobile-nav-btn.active {
+  background: rgba(14, 163, 127, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENHANCEMENT PASS 4 — Accessibility: Focus Traps, ARIA, High-
+   Contrast, Reduced-Motion, Screen-Reader Utilities
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Visually hidden (screen-reader only) ────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+.sr-only-focusable:focus { position: static; width: auto; height: auto; }
+
+/* ── Focus trap backdrop ──────────────────────────────────────────── */
+.focus-trap-active { overflow: hidden; }
+
+/* ── High-contrast mode support ──────────────────────────────────── */
+@media (forced-colors: active) {
+  .primary-button  { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .rank-badge      { forced-color-adjust: none; }
+  .hero-live-dot,
+  .video-live-dot,
+  .network-banner-dot { background: Highlight; }
+  kbd { border: 1px solid ButtonText; }
+}
+
+/* ── Reduced-motion: disable all decorative animations ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .aurora-orb { animation: none !important; }
+  .hero-live-dot::before,
+  .video-live-dot::before,
+  .network-banner-dot { animation: none !important; opacity: 0.8; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .xp-bar-fill { transition: none !important; }
+}
+
+/* ── ARIA busy state ─────────────────────────────────────────────── */
+[aria-busy="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: wait;
+}
+
+/* ── ARIA disabled state ─────────────────────────────────────────── */
+[aria-disabled="true"],
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Live region flash (visual cue for sighted users) ────────────── */
+@keyframes liveRegionFlash {
+  0%   { outline: 2px solid rgba(14,163,127,0); }
+  30%  { outline: 2px solid rgba(14,163,127,0.5); }
+  100% { outline: 2px solid rgba(14,163,127,0); }
+}
+[aria-live].flash {
+  animation: liveRegionFlash 0.6s ease both;
+}
+
+/* ── Modal: ensure dialog role has visible boundary ─────────────── */
+[role="dialog"] {
+  outline: none;
+}
+[role="dialog"]:focus-within {
+  box-shadow: var(--shadow), 0 0 0 2px var(--primary);
+}
+
+/* ── Error state for form inputs ─────────────────────────────────── */
+.field input[aria-invalid="true"],
+.field input.is-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+.field-error {
+  font-size: 0.78rem;
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.field-error::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+/* ── Color-blind safe status indicators ─────────────────────────── */
+.status-online  { color: #059669; }
+.status-offline { color: #dc2626; }
+.status-away    { color: #d97706; }
+
+.status-online::before  { content: "●"; margin-right: 4px; }
+.status-offline::before { content: "●"; margin-right: 4px; }
+.status-away::before    { content: "●"; margin-right: 4px; }
+
+/* ── Improved link underlines ────────────────────────────────────── */
+a:not([class]):hover {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* ── Chat feed: accessible message rows ─────────────────────────── */
+.chat-message[aria-label] {
+  border-radius: 12px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background 0.15s;
+}
+.chat-message[aria-label]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  background: rgba(14, 163, 127, 0.05);
+}
+
+/* ── Font loading flash prevention ──────────────────────────────── */
+html:not(.fonts-loaded) body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── Lazy-image placeholder ──────────────────────────────────────── */
+img[data-src] {
+  background: var(--line);
+  min-height: 40px;
+}
+
+/* ── Data-saver: trim heavy GPU/network effects ──────────────────── */
+@media (prefers-reduced-data: reduce) {
+  .aurora-orb { animation: none !important; opacity: 0.45; }
+  .noise-layer,
+  .cursor-glow { display: none !important; }
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+html.data-saver .aurora-orb { animation: none !important; opacity: 0.45; }
+html.data-saver .noise-layer,
+html.data-saver .cursor-glow { display: none !important; }
+html.data-saver *,
+html.data-saver *::before,
+html.data-saver *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── Content-visibility: defer off-screen footer rendering ───────── */
+.footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
+}

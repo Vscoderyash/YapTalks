@@ -1,2 +1,41 @@
-node_modules
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Logs
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Runtime artifacts
+.enhance.log
+.enhance.lock
+.enhance.pid
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+
+# Coverage
+coverage/
+.nyc_output/
+

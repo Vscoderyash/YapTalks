@@ -1914,6 +1914,7 @@ const toast = (() => {
 (function initHelpModal() {
   const modal   = document.getElementById("helpModal");
   const openBtn = document.getElementById("helpButton");
+  const mobileHelpBtn = document.getElementById("mobileHelpBtn");
   const closeBtn = document.getElementById("helpCloseButton");
   if (!modal) return;
 
@@ -1928,6 +1929,7 @@ const toast = (() => {
   }
 
   openBtn?.addEventListener("click", openHelp);
+  mobileHelpBtn?.addEventListener("click", openHelp);
   closeBtn?.addEventListener("click", closeHelp);
   modal.addEventListener("click", (e) => { if (e.target === modal) closeHelp(); });
   document.addEventListener("keydown", (e) => {
@@ -2042,3 +2044,557 @@ function celebrateLevelUp(newLevel) {
 
 // Expose so XP handling code can call it
 window.celebrateLevelUp = celebrateLevelUp;
+
+// ── Scroll-Reveal (Intersection Observer) ────────────────────────────────────
+
+(function initScrollReveal() {
+  if (!("IntersectionObserver" in window)) {
+    // Fallback: just show everything
+    document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+    return;
+  }
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          io.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+  );
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+
+  // Also observe any dynamically added .reveal elements
+  new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      m.addedNodes.forEach((node) => {
+        if (node.nodeType !== 1) return;
+        if (node.classList?.contains("reveal")) io.observe(node);
+        node.querySelectorAll?.(".reveal").forEach((el) => io.observe(el));
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+})();
+
+// ── Topbar Scroll-Shrink ──────────────────────────────────────────────────────
+
+(function initTopbarShrink() {
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+  const onScroll = () => topbar.classList.toggle("is-scrolled", window.scrollY > 20);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+})();
+
+// ── Animated Number Counter ──────────────────────────────────────────────────
+
+function animateCounter(el, targetStr) {
+  const target = parseInt(targetStr.replace(/[^0-9]/g, ""), 10);
+  if (isNaN(target)) { el.textContent = targetStr; return; }
+
+  const current = parseInt(el.textContent.replace(/[^0-9]/g, ""), 10) || 0;
+  if (current === target) return;
+
+  const diff = target - current;
+  const duration = Math.min(Math.abs(diff) * 18, 800);
+  const steps = Math.min(Math.abs(diff), 40);
+  const stepTime = duration / steps;
+  let step = 0;
+
+  el.classList.add("counting");
+  const timer = setInterval(() => {
+    step++;
+    const progress = step / steps;
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
+    el.textContent = Math.round(current + diff * eased).toLocaleString();
+    if (step >= steps) {
+      clearInterval(timer);
+      el.textContent = target.toLocaleString();
+      el.classList.remove("counting");
+    }
+  }, stepTime);
+}
+
+// Patch online-count socket event to use animated counter
+const _origOnlineUpdate = window.__onlineCountHandler;
+(function patchOnlineCount() {
+  const countEl  = document.getElementById("onlineCount");
+  const heroEl   = document.getElementById("heroStatOnline");
+  if (!countEl) return;
+
+  // Watch for text changes via MutationObserver and animate
+  const animateIfChanged = (el) => {
+    if (!el) return;
+    let last = el.textContent;
+    new MutationObserver(() => {
+      const now = el.textContent;
+      if (now !== last && /^\d/.test(now)) {
+        animateCounter(el, now);
+        last = now;
+      }
+    }).observe(el, { childList: true, characterData: true, subtree: true });
+  };
+  animateIfChanged(countEl);
+  animateIfChanged(heroEl);
+})();
+
+// ── Leaderboard Skeleton Loader ──────────────────────────────────────────────
+
+function showLeaderboardSkeleton(container, rows = 5) {
+  if (!container) return;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < rows; i++) {
+    const item = document.createElement("div");
+    item.className = "leaderboard-skeleton-item";
+    item.innerHTML = `
+      <span class="skeleton skeleton-avatar"></span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+        <span class="skeleton skeleton-line w-3-4"></span>
+        <span class="skeleton skeleton-line w-1-2"></span>
+      </div>
+      <span class="skeleton skeleton-line w-1-3" style="height:20px;border-radius:20px"></span>`;
+    frag.appendChild(item);
+  }
+  container.replaceChildren(frag);
+}
+
+// Expose so leaderboard render can call it before data loads
+window.showLeaderboardSkeleton = showLeaderboardSkeleton;
+
+// ── Video Stage Connecting Pulse ──────────────────────────────────────────────
+
+(function initStagePulse() {
+  const remoteStage = document.querySelector(".video-stage:not(#localStage)") ||
+                      document.getElementById("remoteStage");
+  if (!remoteStage) return;
+
+  // Watch matchHeadline text to derive connection state
+  const headline = document.getElementById("matchHeadline");
+  if (!headline) return;
+
+  const update = () => {
+    const text = headline.textContent.toLowerCase();
+    const connecting = text.includes("searching") || text.includes("connecting") || text.includes("queue");
+    const connected  = text.includes("matched") || text.includes("connected");
+    remoteStage.classList.toggle("is-connecting", connecting && !connected);
+    remoteStage.classList.toggle("peer-connected", connected);
+  };
+  update();
+  new MutationObserver(update).observe(headline, { childList: true, characterData: true, subtree: true });
+})();
+
+// ── Typing Indicator Helper ───────────────────────────────────────────────────
+
+function createTypingIndicator() {
+  const el = document.createElement("div");
+  el.className = "typing-indicator";
+  el.setAttribute("aria-label", "Stranger is typing");
+  el.innerHTML = `<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>`;
+  return el;
+}
+
+// Expose so the typing-event handler can swap in the animated dots
+window.createTypingIndicator = createTypingIndicator;
+
+// ── Audio Visualizer ─────────────────────────────────────────────────────────
+
+(function initAudioVisualizer() {
+  const container = document.getElementById("audioVisualizer");
+  if (!container) return;
+
+  let analyser = null;
+  let dataArr  = null;
+  let rafId    = null;
+  let isActive = false;
+
+  function buildBars() {
+    container.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const bar = document.createElement("div");
+      bar.className = "audio-bar";
+      container.appendChild(bar);
+    }
+  }
+  buildBars();
+
+  function startVisualization(stream) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 32;
+      source.connect(analyser);
+      dataArr = new Uint8Array(analyser.frequencyBinCount);
+      isActive = true;
+      container.classList.remove("is-muted");
+      animateFrame();
+    } catch (e) { /* audio ctx not available */ }
+  }
+
+  function animateFrame() {
+    if (!isActive || !analyser) return;
+    analyser.getByteFrequencyData(dataArr);
+    const bars = container.querySelectorAll(".audio-bar");
+    bars.forEach((bar, i) => {
+      const val = dataArr[Math.floor(i * dataArr.length / bars.length)] || 0;
+      const h = Math.max(3, (val / 255) * 20);
+      bar.style.height = h + "px";
+    });
+    const avg = dataArr.reduce((a, b) => a + b, 0) / dataArr.length;
+    container.classList.toggle("is-speaking", avg > 20);
+    rafId = requestAnimationFrame(animateFrame);
+  }
+
+  function stopVisualization() {
+    isActive = false;
+    cancelAnimationFrame(rafId);
+    analyser = null;
+    container.classList.add("is-muted");
+    container.querySelectorAll(".audio-bar").forEach(b => b.style.height = "3px");
+  }
+
+  // Hook into state.stream changes
+  const origEnsure = window.__ensureLocalStream;
+  window._audioViz = { start: startVisualization, stop: stopVisualization };
+})();
+
+// ── Match Timer ──────────────────────────────────────────────────────────────
+
+(function initMatchTimer() {
+  const el = document.getElementById("matchTimerDisplay");
+  if (!el) return;
+
+  function fmt(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+  let start = null;
+  let raf   = null;
+
+  function tick() {
+    if (!start) return;
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    el.textContent = fmt(elapsed);
+    el.closest(".match-timer")?.classList.toggle("long", elapsed > 300);
+    raf = requestAnimationFrame(tick);
+  }
+
+  window._matchTimer = {
+    start() { start = Date.now(); tick(); },
+    stop()  { start = null; cancelAnimationFrame(raf); el.textContent = "00:00"; },
+  };
+})();
+
+// ── Floating Emoji Reaction ──────────────────────────────────────────────────
+
+function floatReaction(emoji, originEl) {
+  const rect = originEl
+    ? originEl.getBoundingClientRect()
+    : { left: window.innerWidth / 2, top: window.innerHeight * 0.6, width: 0, height: 0 };
+  const el = document.createElement("div");
+  el.className = "reaction-float";
+  el.textContent = emoji;
+  el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 40) + "px";
+  el.style.top  = (rect.top + rect.height / 2) + "px";
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+window.floatReaction = floatReaction;
+
+// ── Profile Card Mouse-follow Glow ───────────────────────────────────────────
+
+(function initProfileCardGlow() {
+  document.addEventListener("mousemove", (e) => {
+    document.querySelectorAll(".profile-card").forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(1);
+      const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1);
+      card.style.setProperty("--mx", x + "%");
+      card.style.setProperty("--my", y + "%");
+    });
+  }, { passive: true });
+})();
+
+// ── XP Milestone Popup ───────────────────────────────────────────────────────
+
+function showXpMilestonePopup(level, rankTitle) {
+  const el = document.createElement("div");
+  el.className = "xp-milestone-popup";
+  el.innerHTML = `Level ${level}<small>${rankTitle}</small>`;
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+window.showXpMilestonePopup = showXpMilestonePopup;
+
+// ── data-tip Tooltip via CSS attr() (no JS needed) ───────────────────────────
+// Add data-tip="text" to any element; CSS handles the rest.
+// This function is a helper to set them programmatically.
+function setTip(el, text) {
+  if (!el) return;
+  if (text) el.setAttribute("data-tip", text);
+  else el.removeAttribute("data-tip");
+}
+window.setTip = setTip;
+
+// ── Match Quality Pill Builder ────────────────────────────────────────────────
+
+function renderMatchQuality(interests) {
+  const el = document.getElementById("matchQualityPill");
+  if (!el) return;
+  if (!interests || interests.length === 0) {
+    el.className = "match-quality-pill low";
+    el.textContent = "Random match";
+    return;
+  }
+  if (interests.length >= 3) {
+    el.className = "match-quality-pill high";
+    el.textContent = `${interests.length} shared interests`;
+  } else {
+    el.className = "match-quality-pill medium";
+    el.textContent = `${interests.length} shared interest${interests.length > 1 ? "s" : ""}`;
+  }
+}
+window.renderMatchQuality = renderMatchQuality;
+
+// ── Mobile Bottom Navigation ──────────────────────────────────────────────────
+
+(function initMobileNav() {
+  const nav = document.getElementById("mobileBottomNav");
+  if (!nav) return;
+
+  const panel     = document.querySelector(".control-panel");
+  const videoWrap = document.querySelector(".video-panel");
+  const chatFeed  = document.getElementById("chatFeed");
+  const btns      = nav.querySelectorAll(".mobile-nav-btn");
+
+  function activate(name) {
+    btns.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+    if (name === "chat" || name === "video") {
+      panel?.classList.remove("mobile-visible");
+      videoWrap?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (name === "sidebar") {
+      panel?.classList.add("mobile-visible");
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (name === "match") {
+      panel?.classList.remove("mobile-visible");
+      document.getElementById("findMatchButton")?.click();
+    }
+  }
+
+  btns.forEach((btn) => {
+    btn.addEventListener("click", () => activate(btn.dataset.tab));
+  });
+
+  // Default to video tab
+  activate("video");
+})();
+
+// ── Swipe Gesture — next match on left swipe over video stage ────────────────
+
+(function initSwipeGesture() {
+  const stage = document.querySelector(".video-stage-wrap") ||
+                document.querySelector(".video-panel");
+  if (!stage) return;
+
+  let startX = 0;
+  let startY = 0;
+
+  stage.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  stage.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    // Horizontal swipe must dominate and exceed 60px
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) {
+        // Left swipe → next match
+        document.getElementById("nextMatchButton")?.click();
+        if (typeof toast !== "undefined") toast.info("Swiped to next match", 2000);
+      }
+      // Right swipe could be "go back" — no-op for now
+    }
+  }, { passive: true });
+})();
+
+// ── Accessibility: Focus Trap ─────────────────────────────────────────────────
+
+function trapFocus(container) {
+  const focusable = container.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+  );
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+  if (!first) return () => {};
+
+  function onKey(e) {
+    if (e.key !== "Tab") return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  container.addEventListener("keydown", onKey);
+  document.body.classList.add("focus-trap-active");
+  first.focus();
+
+  return function release() {
+    container.removeEventListener("keydown", onKey);
+    document.body.classList.remove("focus-trap-active");
+  };
+}
+
+// Wire focus trap to help modal
+(function wireHelpTrap() {
+  const modal    = document.getElementById("helpModal");
+  const closeBtn = document.getElementById("helpCloseButton");
+  if (!modal) return;
+  let releaseTrap = null;
+
+  const orig = window._helpModal;
+  window._helpModal = {
+    open() {
+      orig?.open();
+      releaseTrap?.();
+      releaseTrap = trapFocus(modal.querySelector(".help-card") || modal);
+    },
+    close() {
+      orig?.close();
+      releaseTrap?.();
+      releaseTrap = null;
+    },
+  };
+})();
+
+// ── Accessibility: ARIA Live Region Flash ─────────────────────────────────────
+
+function flashLiveRegion(el) {
+  if (!el) return;
+  el.classList.remove("flash");
+  void el.offsetWidth; // reflow
+  el.classList.add("flash");
+  el.addEventListener("animationend", () => el.classList.remove("flash"), { once: true });
+}
+
+// ── Accessibility: Announce to Screen Readers ─────────────────────────────────
+
+const announce = (() => {
+  let el = document.getElementById("srAnnounce");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "srAnnounce";
+    el.setAttribute("aria-live", "polite");
+    el.setAttribute("aria-atomic", "true");
+    el.className = "sr-only";
+    document.body.appendChild(el);
+  }
+  return (msg, priority = "polite") => {
+    el.setAttribute("aria-live", priority);
+    el.textContent = "";
+    requestAnimationFrame(() => { el.textContent = msg; });
+  };
+})();
+
+window.announce = announce;
+
+// ── Accessibility: Auth form inline validation ────────────────────────────────
+
+(function initAuthInlineValidation() {
+  const emailInput = document.getElementById("authEmail");
+  const passInput  = document.getElementById("authPassword");
+  if (!emailInput || !passInput) return;
+
+  function validateEmail(val) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  }
+
+  emailInput.addEventListener("blur", () => {
+    const ok = !emailInput.value || validateEmail(emailInput.value);
+    emailInput.setAttribute("aria-invalid", ok ? "false" : "true");
+    emailInput.classList.toggle("is-error", !ok);
+    let errEl = emailInput.parentElement.querySelector(".field-error");
+    if (!ok) {
+      if (!errEl) {
+        errEl = document.createElement("p");
+        errEl.className = "field-error";
+        errEl.id = "emailError";
+        emailInput.parentElement.appendChild(errEl);
+        emailInput.setAttribute("aria-describedby", "emailError");
+      }
+      errEl.textContent = "Enter a valid email address.";
+    } else {
+      errEl?.remove();
+      emailInput.removeAttribute("aria-describedby");
+    }
+  });
+
+  passInput.addEventListener("input", () => {
+    const ok = passInput.value.length === 0 || passInput.value.length >= 6;
+    passInput.setAttribute("aria-invalid", ok ? "false" : "true");
+    passInput.classList.toggle("is-error", !ok);
+  });
+})();
+
+// ── Announce match events to screen readers ────────────────────────────────────
+
+(function patchAddMessageForA11y() {
+  const chatFeed = document.getElementById("chatFeed");
+  if (!chatFeed) return;
+
+  // Observe new chat messages and announce system ones
+  new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      m.addedNodes.forEach((node) => {
+        if (node.nodeType !== 1) return;
+        if (node.classList?.contains("system-message") || node.dataset?.author === "System") {
+          announce(node.textContent?.trim(), "polite");
+        }
+      });
+    });
+  }).observe(chatFeed, { childList: true });
+})();
+
+// ── Performance: Image Lazy Loading ───────────────────────────────────────────
+
+(function initLazyImages() {
+  if (!("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const img = e.target;
+      if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; }
+      if (img.dataset.srcset) { img.srcset = img.dataset.srcset; delete img.dataset.srcset; }
+      io.unobserve(img);
+    });
+  }, { rootMargin: "200px" });
+  document.querySelectorAll("img[data-src]").forEach((img) => io.observe(img));
+})();
+
+// ── Performance: Idle-time prefetch of Socket.IO ──────────────────────────────
+
+(function prefetchSocketIO() {
+  if (!("requestIdleCallback" in window)) return;
+  requestIdleCallback(() => {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = "/socket.io/socket.io.js";
+    document.head.appendChild(link);
+  }, { timeout: 3000 });
+})();
+
+// ── Performance: Font load observer ───────────────────────────────────────────
+
+(function trackFontLoad() {
+  if (!document.fonts) return;
+  document.fonts.ready.then(() => {
+    document.documentElement.classList.add("fonts-loaded");
+  });
+})();

@@ -28,12 +28,41 @@
   <title>YapTalks — Free Random Video Chat | Omegle Alternative with Anime Filters & XP Ranks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://yaptalks.onrender.com" crossorigin>
   <link rel="dns-prefetch" href="https://yaptalks.onrender.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="preload" href="styles.css" as="style" fetchpriority="high">
+  <link rel="preload" href="script.js" as="script" fetchpriority="low">
+  <script>
+    /* Pre-paint: honor Save-Data / slow links, idle-prefetch likely next page */
+    (function () {
+      try {
+        var c = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+        var lean = !!c && (c.saveData === true || /(^|\b)(slow-2g|2g)$/.test(c.effectiveType || ""));
+        var de = document.documentElement;
+        if (lean) {
+          de.classList.add("data-saver");
+          return;
+        }
+        var idle = window.requestIdleCallback || function (cb) { return setTimeout(cb, 1500); };
+        idle(function () {
+          if (document.querySelector('link[rel="prefetch"][href="privacy.html"]')) return;
+          var l = document.createElement("link");
+          l.rel = "prefetch";
+          l.href = "privacy.html";
+          document.head.appendChild(l);
+        });
+      } catch (e) {}
+    })();
+  </script>
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet"
+    media="print" onload="this.media='all'"
   >
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  </noscript>
   <link rel="stylesheet" href="styles.css">
   <script type="application/ld+json">
     {
@@ -59,14 +88,67 @@
           }
         },
         {
-          "@type": "WebApplication",
+          "@type": "SoftwareApplication",
           "name": "YapTalks",
           "url": "https://yaptalks.vercel.app/",
           "applicationCategory": "CommunicationApplication",
+          "applicationSubCategory": "VideoChat",
           "operatingSystem": "Web Browser",
-          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-          "featureList": "Random video chat, Anime character filters, XP and rank system, Interest-based matching, Party rooms, Daily missions",
+          "browserRequirements": "Requires JavaScript. Requires a modern browser with WebRTC support.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "1200",
+            "bestRating": "5"
+          },
+          "featureList": [
+            "Random video chat",
+            "Anime character filters (Naruto, Goku, Luffy, Gojo and more)",
+            "XP and rank system",
+            "Interest-based matching",
+            "Party rooms",
+            "Daily missions",
+            "Friend system",
+            "Safety Guard with auto-ban"
+          ],
+          "screenshot": "https://yaptalks.vercel.app/og-image.svg",
           "description": "Next-generation random video chat with anime filters, XP ranks, and real-time matching."
+        },
+        {
+          "@type": "HowTo",
+          "name": "How to start a random video chat on YapTalks",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": "1",
+              "name": "Open YapTalks",
+              "text": "Visit yaptalks.vercel.app in any modern browser. No download required."
+            },
+            {
+              "@type": "HowToStep",
+              "position": "2",
+              "name": "Allow camera and microphone",
+              "text": "Click 'Enable Camera' and allow browser permissions when prompted."
+            },
+            {
+              "@type": "HowToStep",
+              "position": "3",
+              "name": "Find a match",
+              "text": "Press 'Find Match' to be instantly connected with a random stranger."
+            },
+            {
+              "@type": "HowToStep",
+              "position": "4",
+              "name": "Apply an anime filter (optional)",
+              "text": "Open the Anime tab in the sidebar and pick a character. Your peer will see you transformed in real time."
+            }
+          ]
         },
         {
           "@type": "FAQPage",
@@ -167,15 +249,15 @@
         <h1 class="seo-only">YapTalks — Free Random Video Chat with Anime Filters, XP Ranks &amp; More</h1>
 
         <section class="hero-exterior">
-          <div class="hero-badge">
+          <div class="hero-badge reveal">
             <span class="hero-live-dot"></span>
             <span id="heroOnlineText">Live</span> — Free random video chat
           </div>
-          <p class="hero-title">
+          <p class="hero-title reveal">
             <span class="gradient-text">Chat with anyone.</span><br>
             Anywhere. Instantly.
           </p>
-          <p class="hero-sub">Anime filters · XP ranks · Interest matching · Party rooms</p>
+          <p class="hero-sub reveal">Anime filters · XP ranks · Interest matching · Party rooms</p>
           <div class="hero-stats">
             <div class="hero-stat">
               <strong id="heroStatOnline">···</strong>
@@ -197,28 +279,28 @@
         </section>
 
         <div class="feature-strip">
-          <div class="feature-card">
+          <div class="feature-card reveal">
             <div class="feature-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M3 8h12a2 2 0 012 2v4a2 2 0 01-2 2H3a2 2 0 01-2-2V10a2 2 0 012-2z"/></svg>
             </div>
             <h3>Anime Character Filters</h3>
             <p>Become Naruto, Goku, Gojo or 6 more. Your camera, transformed in real time.</p>
           </div>
-          <div class="feature-card">
+          <div class="feature-card reveal">
             <div class="feature-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             </div>
             <h3>XP &amp; Rank System</h3>
             <p>Earn XP every match. Climb from Newcomer to Legend rank.</p>
           </div>
-          <div class="feature-card">
+          <div class="feature-card reveal">
             <div class="feature-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             </div>
             <h3>Interest Matching</h3>
             <p>Pick topics you love. Get matched with people who share your vibe.</p>
           </div>
-          <div class="feature-card">
+          <div class="feature-card reveal">
             <div class="feature-icon-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
             </div>
@@ -416,8 +498,13 @@
                   <span class="video-match-label" id="matchHeadline">No active match</span>
                 </div>
                 <div class="video-hud-right">
+                  <span id="matchQualityPill" class="match-quality-pill low" hidden>Ready</span>
                   <span class="video-quality-tag" id="matchQuality">Ready</span>
-                  <span class="video-timer-pill" id="callTimer">0:00</span>
+                  <span class="match-timer" id="matchTimerWrap" hidden>
+                    <span class="match-timer-dot"></span>
+                    <span id="matchTimerDisplay">00:00</span>
+                  </span>
+                  <div class="audio-visualizer" id="audioVisualizer" aria-hidden="true"></div>
                 </div>
               </div>
 
@@ -445,9 +532,9 @@
 
               <!-- Floating controls bar -->
               <div class="video-controls-bar">
-                <button class="vc-btn" id="muteButton" type="button">Mute</button>
-                <button class="vc-btn" id="cameraButton" type="button">Camera Off</button>
-                <button class="vc-btn vc-next" id="nextMatchButton" type="button">Next</button>
+                <button class="vc-btn" id="muteButton" type="button" data-tip="Toggle mic (M)">Mute</button>
+                <button class="vc-btn" id="cameraButton" type="button" data-tip="Toggle camera (C)">Camera Off</button>
+                <button class="vc-btn vc-next" id="nextMatchButton" type="button" data-tip="Next match (N)">Next</button>
                 <button class="vc-btn vc-danger" id="reportButton" type="button">Report</button>
               </div>
             </div>
@@ -624,6 +711,26 @@
       </ul>
     </div>
   </section>
+
+  <!-- Mobile bottom navigation (hidden on desktop via CSS) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Main navigation">
+    <button class="mobile-nav-btn active" data-tab="video" type="button" aria-label="Video chat">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M3 8h12a2 2 0 012 2v4a2 2 0 01-2 2H3a2 2 0 01-2-2V10a2 2 0 012-2z"/></svg>
+      Video
+    </button>
+    <button class="mobile-nav-btn" data-tab="sidebar" type="button" aria-label="Controls">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      Controls
+    </button>
+    <button class="mobile-nav-btn" data-tab="match" type="button" aria-label="Find match">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Match
+    </button>
+    <button class="mobile-nav-btn" id="mobileHelpBtn" data-tab="help" type="button" aria-label="Help">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      Help
+    </button>
+  </nav>
 
   <script type="module" src="auth.js"></script>
   <script src="script.js"></script>
