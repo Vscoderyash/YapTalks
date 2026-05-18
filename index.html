@@ -548,17 +548,10 @@
                 </div>
               </div>
 
-              <!-- Idle overlay — hidden when call is live -->
-              <div class="video-idle-overlay" id="remoteOverlay">
-                <div class="video-idle-card">
-                  <div class="video-idle-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                  </div>
-                  <p id="matchDescription">Press "Find match" to start chatting.</p>
-                  <span class="video-queue-tag" id="queueStatus">IDLE</span>
-                </div>
+              <!-- Idle overlay — kept for JS state tracking, visually empty -->
+              <div class="video-idle-overlay" id="remoteOverlay" aria-hidden="true">
+                <span id="matchDescription" hidden></span>
+                <span id="queueStatus" hidden></span>
               </div>
 
               <!-- Peer anime badge -->
