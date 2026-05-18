@@ -5224,3 +5224,178 @@ body.dark-mode .friend-item:hover { background: rgba(14,163,127,0.07); }
 body.dark-mode .mission-item { border-color: rgba(255,255,255,0.06); }
 body.dark-mode .sound-toggle-row { border-color: rgba(255,255,255,0.06); color: #e2e8f0; }
 body.dark-mode .party-code-display { background: rgba(15,23,42,0.7); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIDEO STAGE LAYOUT FIX — full-bleed video, no fixed-box idle,
+   uncapped height, better PiP placement
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── App grid — remove 780px height cap ────────────────────────── */
+.app-grid {
+  height: calc(100dvh - 120px);
+  min-height: 520px;
+  max-height: none;
+}
+
+/* ── Video stage — fill available column height ─────────────────── */
+.video-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Video stack — always fill remaining space ──────────────────── */
+.video-stack {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  width: 100%;
+}
+
+/* ── Remote video — cover every pixel ──────────────────────────── */
+.remote-stage,
+.remote-stage video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Idle overlay — full-bleed, no inner box ────────────────────── */
+.video-idle-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* subtle vignette on the dark bg instead of a card */
+  background: radial-gradient(ellipse at center,
+    rgba(14, 163, 127, 0.04) 0%,
+    transparent 70%);
+}
+
+/* Kill the box entirely — idle content floats on the dark background */
+.video-idle-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  max-width: 280px;
+  box-shadow: none;
+}
+
+/* Icon container — softer glow ring, no opaque bg */
+.video-idle-icon {
+  width: 80px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 40px rgba(14, 163, 127, 0.12),
+              inset 0 1px 0 rgba(255,255,255,0.07);
+  animation: idleIconFloat 3s ease-in-out infinite;
+}
+
+.video-idle-icon svg {
+  width: 36px;
+  height: 36px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.video-idle-card p {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+}
+
+/* ── PiP local — anchor above controls bar, not fixed px ────────── */
+.local-stage {
+  position: absolute;
+  right: 16px;
+  bottom: 80px;       /* sits above the floating controls bar */
+  width: 120px;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 9;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.local-stage:hover { transform: scale(1.04); opacity: 0.95; }
+.local-stage video { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Stage action bar — slim, flush to bottom ───────────────────── */
+.stage-action-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+/* ── Tablet: video fills its row, explicit height ───────────────── */
+@media (max-width: 1100px) {
+  .app-grid {
+    height: calc(100dvh - 100px);
+    min-height: 560px;
+    max-height: none;
+    grid-template-columns: 220px 1fr;
+  }
+  .video-stack {
+    min-height: 300px;
+    max-height: none;
+  }
+}
+
+/* ── Mobile: video takes natural aspect ratio, not capped ────────── */
+@media (max-width: 700px) {
+  .app-grid {
+    height: auto;
+    min-height: 0;
+  }
+  .video-stack {
+    min-height: 260px;
+    max-height: 62vw;
+    aspect-ratio: 4 / 3;
+  }
+  .local-stage {
+    width: 72px;
+    height: 96px;
+    bottom: 68px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .video-stack {
+    max-height: 58vw;
+    min-height: 220px;
+  }
+}
+
+/* ── Dark mode stage action bar ─────────────────────────────────── */
+body.dark-mode .stage-action-bar {
+  background: rgba(15, 23, 42, 0.88);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
