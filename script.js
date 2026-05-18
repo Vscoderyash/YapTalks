@@ -985,6 +985,28 @@ function currentMatchOptions() {
   return { mode: "video", filter: "all", interests: state.profile?.interests || [] };
 }
 
+function describeQueue(payload = {}) {
+  const position = Number(payload.position) || 1;
+  const depth = Number(payload.depth) || position;
+  const averageWaitMs = Number(payload.averageWaitMs) || 0;
+  const waitSeconds = Math.max(0, Math.round(averageWaitMs / 1000));
+  const interestCount = Array.isArray(payload.interests) ? payload.interests.length : 0;
+  const base = `Queue #${position}`;
+  const wait = waitSeconds ? `avg ${waitSeconds}s` : "warming up";
+  const vibe = interestCount ? `${interestCount} vibe${interestCount > 1 ? "s" : ""}` : "open match";
+  return `${base} of ${depth} - ${wait} - ${vibe}`;
+}
+
+function describeMatch(payload = {}) {
+  const sharedInterests = Array.isArray(payload.sharedInterests) ? payload.sharedInterests : [];
+  if (sharedInterests.length) {
+    const shown = sharedInterests.slice(0, 3).join(", ");
+    const extra = sharedInterests.length > 3 ? ` +${sharedInterests.length - 3}` : "";
+    return `Shared: ${shown}${extra}`;
+  }
+  return payload.strategy === "interest" ? "Best available match" : "Fast random match";
+}
+
 function resetPeer() {
   if (!state.peerConnection) return;
   state.peerConnection.ontrack = null;
@@ -1003,6 +1025,8 @@ function setDisconnectedUI(reason) {
   setText(els.matchQuality, reason || "Disconnected");
   setText(els.matchHeadline, "No active match");
   setText(els.matchDescription, "Press \"Find match\" to start chatting.");
+  const pill = document.getElementById("matchQualityPill");
+  if (pill) pill.hidden = true;
 }
 
 function clearMatch(reason) {
@@ -1152,9 +1176,17 @@ async function connectSocketIfNeeded() {
 
   socket.on("queued", (payload) => {
     setText(els.queueStatus, "Searching...");
-    setText(els.matchQuality, `Queue position ${payload.position}`);
+    setText(els.matchQuality, describeQueue(payload));
     setText(els.matchHeadline, "Finding your next match");
-    setText(els.matchDescription, "Looking for someone to connect with.");
+    const interests = Array.isArray(payload.interests) ? payload.interests : [];
+    setText(
+      els.matchDescription,
+      interests.length
+        ? `Prioritizing people who like ${interests.slice(0, 3).join(", ")}.`
+        : "Looking for the fastest good connection.",
+    );
+    const pill = document.getElementById("matchQualityPill");
+    if (pill) pill.hidden = true;
   });
 
   socket.on("match-found", async (payload) => {
@@ -1191,8 +1223,9 @@ async function connectSocketIfNeeded() {
     }
     setText(els.queueStatus, "Connected");
     setText(els.matchHeadline, "Matched with a stranger");
-    const interestList = (state.profile?.interests || []).join(", ");
-    setText(els.matchQuality, interestList ? `Interests: ${interestList}` : "Random match");
+    const sharedInterests = Array.isArray(payload.sharedInterests) ? payload.sharedInterests : [];
+    setText(els.matchQuality, describeMatch(payload));
+    renderMatchQuality(sharedInterests);
     addMessage("System", "You are connected. Keep the conversation respectful.");
     if (typeof toast !== "undefined") toast.info("New match found!", 3000);
     const mediaReady = await ensureLocalStream();
@@ -2345,6 +2378,7 @@ window.setTip = setTip;
 function renderMatchQuality(interests) {
   const el = document.getElementById("matchQualityPill");
   if (!el) return;
+  el.hidden = false;
   if (!interests || interests.length === 0) {
     el.className = "match-quality-pill low";
     el.textContent = "Random match";

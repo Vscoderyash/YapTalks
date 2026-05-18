@@ -32,6 +32,7 @@
 
 ### Core Communication
 - **Live random matching** with Socket.IO queueing (text or video)
+- **Compatibility-aware matching** that prioritizes shared interests before falling back to fast random pairing
 - **One-to-one text chat** between matched users with typing indicators
 - **WebRTC video** with STUN signaling, peer-to-peer audio/video
 - **Camera & mic controls**: mute, camera toggle, skip, report

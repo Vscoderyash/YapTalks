@@ -112,6 +112,8 @@ const ipConnectionLog = new Map();
 const RATE_LIMIT_EVENTS_PER_SEC = 25;
 const SUSPICION_BAN_THRESHOLD = 80;
 const IP_CONN_LIMIT_PER_MINUTE = 12;
+const INTEREST_GRACE_MS = 12000;
+const MAX_INTERESTS_PER_USER = 8;
 
 function checkRate(socketId) {
   const now = Date.now();
@@ -184,6 +186,50 @@ function sanitizeText(value, fallback = "") {
 function sanitizeName(value, fallback = "Yap User") {
   const cleaned = sanitizeText(value, fallback).slice(0, 48);
   return cleaned || fallback;
+}
+
+function sanitizeInterests(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const interests = [];
+  for (const item of value) {
+    const interest = sanitizeText(item, "")
+      .replace(/\s+/g, " ")
+      .slice(0, 32);
+    const key = interest.toLowerCase();
+    if (!interest || seen.has(key)) continue;
+    seen.add(key);
+    interests.push(interest);
+    if (interests.length >= MAX_INTERESTS_PER_USER) break;
+  }
+  return interests;
+}
+
+function sharedInterestsFor(first, second) {
+  const secondSet = new Set((second.interests || []).map((item) => item.toLowerCase()));
+  return (first.interests || []).filter((item) => secondSet.has(item.toLowerCase()));
+}
+
+function compatibilityScore(first, second, now = Date.now()) {
+  const shared = sharedInterestsFor(first, second);
+  const firstWait = now - (first.createdAt || now);
+  const secondWait = now - (second.createdAt || now);
+  const waitBoost = Math.min(Math.floor(Math.min(firstWait, secondWait) / 4000), 5);
+  const sharedBoost = shared.length * 12;
+  return {
+    shared,
+    score: sharedBoost + waitBoost,
+    shouldPrefer: shared.length > 0 || firstWait > INTEREST_GRACE_MS || secondWait > INTEREST_GRACE_MS,
+  };
+}
+
+function queueSnapshot(queue) {
+  const now = Date.now();
+  const waits = queue.map((entry) => Math.max(0, now - entry.createdAt));
+  const averageWaitMs = waits.length
+    ? Math.round(waits.reduce((sum, wait) => sum + wait, 0) / waits.length)
+    : 0;
+  return { depth: queue.length, averageWaitMs };
 }
 
 function queueKey(filter, mode) {
@@ -295,7 +341,17 @@ function tryMatchForKey(key) {
   const queue = queues[key];
   while (queue.length >= 2) {
     const first = queue.shift();
-    const second = queue.shift();
+    let bestIndex = 0;
+    let bestMatch = compatibilityScore(first, queue[0]);
+    for (let i = 1; i < queue.length; i += 1) {
+      const candidateMatch = compatibilityScore(first, queue[i]);
+      if (candidateMatch.score > bestMatch.score) {
+        bestIndex = i;
+        bestMatch = candidateMatch;
+      }
+    }
+
+    const second = queue.splice(bestIndex, 1)[0];
     const firstSocket = io.sockets.sockets.get(first.socketId);
     const secondSocket = io.sockets.sockets.get(second.socketId);
 
@@ -314,8 +370,27 @@ function tryMatchForKey(key) {
 
     metrics.totalMatches += 1;
 
-    firstSocket.emit("match-found", { roomId, peerId: second.socketId, initiator: true, mode: first.mode });
-    secondSocket.emit("match-found", { roomId, peerId: first.socketId, initiator: false, mode: second.mode });
+    const sharedInterests = bestMatch.shared;
+    const matchScore = Math.min(100, Math.round((sharedInterests.length / MAX_INTERESTS_PER_USER) * 100));
+
+    firstSocket.emit("match-found", {
+      roomId,
+      peerId: second.socketId,
+      initiator: true,
+      mode: first.mode,
+      sharedInterests,
+      matchScore,
+      strategy: bestMatch.shouldPrefer ? "interest" : "fast",
+    });
+    secondSocket.emit("match-found", {
+      roomId,
+      peerId: first.socketId,
+      initiator: false,
+      mode: second.mode,
+      sharedInterests,
+      matchScore,
+      strategy: bestMatch.shouldPrefer ? "interest" : "fast",
+    });
   }
 }
 
@@ -326,10 +401,16 @@ function enqueueSocket(socket, options) {
   const entry = {
     socketId: socket.id,
     mode: options.mode === "text" ? "text" : "video",
+    interests: sanitizeInterests(options.interests),
     createdAt: Date.now(),
   };
   queues[key].push(entry);
-  socket.emit("queued", { queue: key, position: queues[key].length });
+  socket.emit("queued", {
+    queue: key,
+    position: queues[key].length,
+    interests: entry.interests,
+    ...queueSnapshot(queues[key]),
+  });
   tryMatchForKey(key);
 }
 
