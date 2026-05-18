@@ -2735,3 +2735,216 @@ setInterval(() => sessionStats.render(), 60000);
     ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
   }, { passive: true });
 })();
+
+// ── Leaderboard renderer with medals + rank changes ───────────────────────────
+
+function renderLeaderboard(entries) {
+  const list = document.getElementById("leaderboardList");
+  if (!list) return;
+  if (!entries || entries.length === 0) {
+    list.innerHTML = '<div class="leaderboard-empty">No data yet. Complete matches to appear here.</div>';
+    return;
+  }
+  const medals = ["🥇", "🥈", "🥉"];
+  list.innerHTML = entries.map((e, i) => {
+    const rank = i + 1;
+    const medal = medals[i] || rank;
+    const lvlTitle = typeof rankTitle === "function" ? rankTitle(e.level || 1) : `Lv ${e.level || 1}`;
+    const xpK = e.xp >= 1000 ? (e.xp / 1000).toFixed(1) + "k" : e.xp;
+    return `
+      <div class="leaderboard-item" data-rank="${rank}">
+        <span class="leaderboard-rank">${medal}</span>
+        <div class="leaderboard-avatar" aria-hidden="true">${(e.name || "?")[0].toUpperCase()}</div>
+        <div class="leaderboard-info">
+          <div class="leaderboard-name">${escHtml(e.name || "Anonymous")}</div>
+          <div class="leaderboard-sub">${lvlTitle} · Streak ${e.streak || 0}d</div>
+        </div>
+        <span class="leaderboard-xp">${xpK} XP</span>
+      </div>`;
+  }).join("");
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+window.renderLeaderboard = renderLeaderboard;
+
+// ── Party room — copy invite code ─────────────────────────────────────────────
+
+(function initPartyCodeCopy() {
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".party-copy-btn");
+    if (!btn) return;
+    const code = btn.closest(".party-code-display")?.querySelector(".party-code-text")?.textContent?.trim();
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 2000);
+      if (typeof toast !== "undefined") toast.success("Room code copied!", 2500);
+    }).catch(() => {
+      if (typeof toast !== "undefined") toast.error("Copy failed — select it manually.", 2500);
+    });
+  });
+})();
+
+function showPartyCode(code) {
+  const label = document.getElementById("partyRoomLabel");
+  if (!label) return;
+  label.innerHTML = `
+    <div class="party-code-display">
+      <span class="party-code-text">${escHtml(code)}</span>
+      <button class="party-copy-btn" type="button">Copy</button>
+    </div>`;
+}
+window.showPartyCode = showPartyCode;
+
+// ── Interest tag search filter ────────────────────────────────────────────────
+
+(function initInterestSearch() {
+  const container = document.getElementById("interestTags");
+  if (!container) return;
+
+  // Inject search input above tags
+  const wrap = container.closest(".hype-card");
+  if (!wrap) return;
+  const existing = wrap.querySelector(".interest-search");
+  if (existing) return;
+
+  const input = document.createElement("input");
+  input.type = "search";
+  input.className = "interest-search";
+  input.placeholder = "Search interests…";
+  input.setAttribute("aria-label", "Search interest tags");
+  container.parentElement.insertBefore(input, container);
+
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    container.querySelectorAll(".interest-tag").forEach((tag) => {
+      const match = !q || tag.textContent.toLowerCase().includes(q);
+      tag.style.display = match ? "" : "none";
+    });
+  });
+})();
+
+// ── Video quality indicator ───────────────────────────────────────────────────
+
+(function initVideoQualityIndicator() {
+  const wrap = document.getElementById("matchTimerWrap")?.parentElement;
+  if (!wrap) return;
+
+  const badge = document.createElement("div");
+  badge.id = "videoQualityBadge";
+  badge.className = "video-quality-badge";
+  badge.setAttribute("aria-label", "Video call quality");
+  badge.innerHTML = `
+    <span class="video-quality-bars">
+      <span></span><span></span><span></span>
+    </span>
+    <span id="videoQualityLabel"></span>`;
+  badge.hidden = true;
+  wrap.appendChild(badge);
+
+  function setQuality(level) { // "excellent" | "good" | "poor"
+    badge.hidden = false;
+    badge.className = `video-quality-badge ${level}`;
+    const bars = badge.querySelectorAll(".video-quality-bars span");
+    const counts = { excellent: 3, good: 2, poor: 1 };
+    bars.forEach((b, i) => b.classList.toggle("active", i < counts[level]));
+    badge.querySelector("#videoQualityLabel").textContent = level;
+    badge.setAttribute("aria-label", `Video quality: ${level}`);
+  }
+
+  // Poll RTT from peerConnection stats if available
+  function pollQuality() {
+    const pc = state?.peerConnection;
+    if (!pc) { badge.hidden = true; return; }
+    pc.getStats().then((stats) => {
+      stats.forEach((report) => {
+        if (report.type === "candidate-pair" && report.state === "succeeded") {
+          const rtt = report.currentRoundTripTime * 1000 || report.totalRoundTripTime * 1000;
+          if (rtt < 80)       setQuality("excellent");
+          else if (rtt < 250) setQuality("good");
+          else                setQuality("poor");
+        }
+      });
+    }).catch(() => {});
+  }
+
+  setInterval(pollQuality, 4000);
+  window._setVideoQuality = setQuality;
+})();
+
+// ── Achievement grid renderer ─────────────────────────────────────────────────
+
+function renderAchievementGrid(achievements, unlocked = []) {
+  const container = document.getElementById("achievementsList");
+  if (!container) return;
+  container.className = "achievements-grid";
+  container.innerHTML = achievements.map((ach) => {
+    const done = unlocked.includes(ach.id);
+    return `
+      <div class="ach-badge ${done ? "unlocked" : ""}" data-tip="${escHtml(ach.label)}${ach.xpReward ? ` (+${ach.xpReward} XP)` : ""}">
+        <span class="ach-icon" aria-hidden="true">${ach.icon || "⭐"}</span>
+        <span class="ach-name">${escHtml(ach.label)}</span>
+      </div>`;
+  }).join("");
+}
+window.renderAchievementGrid = renderAchievementGrid;
+
+// ── XP circular ring updater ──────────────────────────────────────────────────
+
+function updateXpRing(currentXp, nextLevelXp, prevLevelXp = 0) {
+  const fill = document.querySelector(".xp-ring-fill");
+  if (!fill) return;
+  const r = 27; // radius
+  const circ = 2 * Math.PI * r;
+  const progress = Math.min((currentXp - prevLevelXp) / Math.max(nextLevelXp - prevLevelXp, 1), 1);
+  fill.style.strokeDasharray = circ;
+  fill.style.strokeDashoffset = circ * (1 - progress);
+}
+window.updateXpRing = updateXpRing;
+
+// ── Sound settings ────────────────────────────────────────────────────────────
+
+const soundSettings = (() => {
+  const KEYS = { match: "snd_match", levelup: "snd_levelup", message: "snd_message" };
+  const state = {};
+
+  try {
+    Object.entries(KEYS).forEach(([k, sk]) => {
+      state[k] = localStorage.getItem(sk) !== "0";
+    });
+  } catch { Object.keys(KEYS).forEach(k => { state[k] = true; }); }
+
+  function save(key, val) {
+    state[key] = val;
+    try { localStorage.setItem(KEYS[key], val ? "1" : "0"); } catch {}
+  }
+
+  function isEnabled(key) { return state[key] !== false; }
+
+  return { save, isEnabled };
+})();
+
+window.soundSettings = soundSettings;
+
+// Patch playSound to respect settings
+const _origPlaySound = window.playSound;
+window.playSound = function(name) {
+  if (soundSettings.isEnabled(name)) _origPlaySound?.(name);
+};
+
+// ── Wire sound setting toggles ─────────────────────────────────────────────────
+
+(function initSoundToggles() {
+  const map = { sndMatch: "match", sndLevelup: "levelup", sndMessage: "message" };
+  Object.entries(map).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.checked = soundSettings.isEnabled(key);
+    el.addEventListener("change", () => soundSettings.save(key, el.checked));
+  });
+})();
