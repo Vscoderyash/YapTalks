@@ -326,7 +326,21 @@
               <div class="hype-card">
                 <div class="hype-head">
                   <div class="streak-head-left">
-                    <span id="avatarDisplay" class="avatar-display">😊</span>
+                    <div class="xp-ring-wrap" aria-hidden="true">
+                      <svg class="xp-ring" viewBox="0 0 64 64">
+                        <defs>
+                          <linearGradient id="xpGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="#0ea37f"/>
+                            <stop offset="100%" stop-color="#0f6ee9"/>
+                          </linearGradient>
+                        </defs>
+                        <circle class="xp-ring-track" cx="32" cy="32" r="27"/>
+                        <circle class="xp-ring-fill" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+                      </svg>
+                      <div class="xp-ring-label">
+                        <span id="avatarDisplay" class="avatar-display">😊</span>
+                      </div>
+                    </div>
                     <div>
                       <span class="rank-badge" id="rankBadge">Newcomer</span>
                       <span id="xpMultiplier" class="xp-boost-badge" hidden>1x boost</span>
@@ -338,7 +352,7 @@
                   <div><span>Level</span><strong id="levelValue">1</strong></div>
                   <div><span>Total XP</span><strong id="xpValue">0</strong></div>
                 </div>
-                <div class="xp-bar"><span id="xpBarFill"></span></div>
+                <div class="xp-bar"><span id="xpBarFill" class="xp-bar-fill"></span></div>
                 <p class="xp-progress-text" id="xpProgress">0 / 100 XP to next level</p>
                 <div id="prestigeCount" class="prestige-count"></div>
                 <button id="prestigeButton" class="prestige-btn wide" type="button" hidden>Prestige Now</button>
@@ -366,7 +380,33 @@
                   <span class="eyebrow">Achievements</span>
                   <strong id="achievementsCount">0 / 16</strong>
                 </div>
-                <div class="achievements-list" id="achievementsList"></div>
+                <div class="achievements-list achievements-grid" id="achievementsList"></div>
+              </div>
+
+              <!-- Sound Settings -->
+              <div class="hype-card">
+                <div class="hype-head"><span class="eyebrow">Sound</span></div>
+                <label class="sound-toggle-row">
+                  Match found
+                  <span class="toggle-switch">
+                    <input type="checkbox" id="sndMatch" checked>
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+                <label class="sound-toggle-row">
+                  Level up
+                  <span class="toggle-switch">
+                    <input type="checkbox" id="sndLevelup" checked>
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+                <label class="sound-toggle-row">
+                  Messages
+                  <span class="toggle-switch">
+                    <input type="checkbox" id="sndMessage" checked>
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
               </div>
 
               <!-- Safety Center -->
@@ -516,8 +556,8 @@
                       <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                     </svg>
                   </div>
-                  <p id="matchDescription">Press "Find match" to begin.</p>
-                  <span class="video-queue-tag" id="queueStatus">Idle</span>
+                  <p id="matchDescription">Press "Find match" to start chatting.</p>
+                  <span class="video-queue-tag" id="queueStatus">IDLE</span>
                 </div>
               </div>
 
@@ -545,9 +585,23 @@
               <button class="ghost-button" id="enhanceButton" type="button">HD</button>
               <button class="primary-button" id="findMatchButton" type="button">Find match</button>
             </div>
+
+            <!-- Reconnect overlay (shown on connection drop) -->
+            <div class="reconnect-overlay" id="reconnectOverlay" hidden>
+              <div class="reconnect-spinner" aria-hidden="true"></div>
+              <p class="reconnect-msg">Connection lost</p>
+              <p class="reconnect-countdown" aria-live="polite"></p>
+            </div>
           </section>
 
           <aside class="panel chat-panel">
+
+            <!-- Session stats strip -->
+            <div class="session-stats" id="sessionStatsStrip" aria-label="Session statistics">
+              <span class="session-stat-pill">Matches <strong>0</strong></span>
+              <span class="session-stat-pill">Messages <strong>0</strong></span>
+              <span class="session-stat-pill">Time <strong>0m</strong></span>
+            </div>
 
             <div class="chat-header">
               <div class="chat-header-info">
@@ -643,12 +697,12 @@
 
       <label class="field">
         <span>Name (optional)</span>
-        <input id="authName" type="text" placeholder="Your name">
+        <input id="authName" type="text" placeholder="Your name" aria-label="Display name" autocomplete="name">
       </label>
 
       <label class="field">
         <span>Email</span>
-        <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" aria-label="Email address" inputmode="email">
       </label>
 
       <label class="field">

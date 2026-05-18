@@ -4568,3 +4568,834 @@ html.data-saver *::after {
   content-visibility: auto;
   contain-intrinsic-size: auto 360px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FINAL BATCH — Auth spinner, chat bubbles, scrollbars, session
+   stats, empty states, XP shimmer, reconnect overlay
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Button loading spinner ─────────────────────────────────────── */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  inset: 50% 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ghost-button.btn-loading::after {
+  border-color: rgba(14,163,127,0.3);
+  border-top-color: var(--primary);
+}
+
+/* ── Chat message bubbles ───────────────────────────────────────── */
+.chat-message {
+  max-width: 82%;
+  padding: 8px 13px;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  word-break: break-word;
+  position: relative;
+}
+.chat-message.outgoing {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--primary), #0a896a);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  margin-left: auto;
+}
+.chat-message.incoming {
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-bottom-left-radius: 4px;
+}
+.chat-message.system-msg {
+  align-self: center;
+  background: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 3px 8px;
+  max-width: 100%;
+  text-align: center;
+}
+.chat-message .msg-time {
+  font-size: 0.65rem;
+  opacity: 0.55;
+  margin-top: 3px;
+  display: block;
+}
+.chat-message.outgoing .msg-time { text-align: right; }
+
+/* ── Chat feed scrollbar ────────────────────────────────────────── */
+.chat-feed {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(14,163,127,0.3) transparent;
+}
+.chat-feed::-webkit-scrollbar { width: 5px; }
+.chat-feed::-webkit-scrollbar-track { background: transparent; }
+.chat-feed::-webkit-scrollbar-thumb {
+  background: rgba(14,163,127,0.3);
+  border-radius: 10px;
+}
+.chat-feed::-webkit-scrollbar-thumb:hover { background: rgba(14,163,127,0.55); }
+
+/* ── Global thin scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.35); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(14,163,127,0.45); }
+
+/* ── Empty state ────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+.empty-state-icon {
+  width: 44px;
+  height: 44px;
+  opacity: 0.35;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.empty-state p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ── Reconnect overlay ──────────────────────────────────────────── */
+.reconnect-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(10,15,30,0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: inherit;
+  color: #fff;
+  text-align: center;
+  padding: 24px;
+}
+.reconnect-overlay[hidden] { display: none; }
+.reconnect-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.reconnect-msg {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+}
+.reconnect-countdown {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.55);
+}
+
+/* ── Session stats pill strip ───────────────────────────────────── */
+.session-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+.session-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.session-stat-pill strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── XP bar shimmer on gain ─────────────────────────────────────── */
+@keyframes xpShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.xp-bar-fill.gaining {
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0%,
+    #34d399 40%,
+    var(--primary) 60%,
+    var(--accent) 100%
+  ) !important;
+  background-size: 200% auto !important;
+  animation: xpShimmer 0.9s ease both;
+}
+
+/* ── Leaderboard empty state ────────────────────────────────────── */
+.leaderboard-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+/* ── Auth modal close button ────────────────────────────────────── */
+.auth-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.auth-close-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* ── Dark mode ──────────────────────────────────────────────────── */
+body.dark-mode .chat-message.incoming {
+  background: rgba(30,41,59,0.9);
+  border-color: rgba(255,255,255,0.07);
+  color: #e2e8f0;
+}
+body.dark-mode .chat-message.outgoing {
+  background: linear-gradient(135deg, #0a896a, #0f6ee9);
+}
+body.dark-mode .session-stat-pill {
+  background: rgba(15,23,42,0.7);
+  border-color: rgba(255,255,255,0.07);
+}
+body.dark-mode .session-stat-pill strong { color: #f1f5f9; }
+body.dark-mode .reconnect-overlay { background: rgba(5,8,18,0.82); }
+body.dark-mode .empty-state { color: #64748b; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ADVANCED BATCH — Leaderboard medals, party invite, interest tags
+   search, video quality indicator, missions progress, achievement
+   grid, sound toggle, XP ring, friend online dots
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Leaderboard medals & rank change ───────────────────────────── */
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  margin-bottom: 5px;
+  transition: background 0.15s, transform 0.15s;
+  cursor: default;
+}
+.leaderboard-item:hover { background: var(--surface); transform: translateX(2px); }
+.leaderboard-rank {
+  font-size: 0.72rem;
+  font-weight: 800;
+  min-width: 22px;
+  text-align: center;
+  color: var(--muted);
+}
+.leaderboard-item[data-rank="1"] .leaderboard-rank { color: #f59e0b; font-size: 1rem; }
+.leaderboard-item[data-rank="2"] .leaderboard-rank { color: #94a3b8; font-size: 0.9rem; }
+.leaderboard-item[data-rank="3"] .leaderboard-rank { color: #b45309; font-size: 0.85rem; }
+.leaderboard-item[data-rank="1"] { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
+.leaderboard-item[data-rank="2"] { background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.2); }
+.leaderboard-item[data-rank="3"] { background: rgba(180,83,9,0.06);   border-color: rgba(180,83,9,0.2); }
+.leaderboard-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.leaderboard-info { flex: 1; min-width: 0; }
+.leaderboard-name {
+  font-size: 0.83rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+.leaderboard-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.leaderboard-xp {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rank-change {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+.rank-change.up   { color: #059669; background: rgba(5,150,105,0.1); }
+.rank-change.down { color: #dc2626; background: rgba(220,38,38,0.1); }
+.rank-change.same { color: var(--muted); }
+
+/* ── Party room — invite code display ───────────────────────────── */
+.party-code-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-soft);
+  border: 1px dashed var(--primary);
+  border-radius: 12px;
+  margin: 8px 0;
+}
+.party-code-text {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+  flex: 1;
+  text-align: center;
+}
+.party-copy-btn {
+  background: none;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.party-copy-btn:hover { background: var(--primary); color: #fff; }
+.party-copy-btn.copied { background: var(--primary); color: #fff; }
+
+/* ── Friend list online dots ────────────────────────────────────── */
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  transition: background 0.12s;
+}
+.friend-item:hover { background: rgba(14,163,127,0.05); }
+.friend-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  position: relative;
+  flex-shrink: 0;
+}
+.friend-online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid var(--surface);
+}
+.friend-name {
+  flex: 1;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.friend-status {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* ── Interest tag search input ──────────────────────────────────── */
+.interest-search {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.83rem;
+  margin-bottom: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.interest-search:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(14,163,127,0.15);
+}
+.interest-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.interest-tag {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+  user-select: none;
+}
+.interest-tag:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+.interest-tag.selected {
+  background: linear-gradient(135deg, rgba(14,163,127,0.15), rgba(15,110,233,0.1));
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.interest-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
+/* ── Video quality indicator ────────────────────────────────────── */
+.video-quality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.video-quality-badge.excellent { background: rgba(5,150,105,0.15); color: #059669; }
+.video-quality-badge.good      { background: rgba(245,158,11,0.12); color: #d97706; }
+.video-quality-badge.poor      { background: rgba(220,38,38,0.12); color: #dc2626; }
+.video-quality-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.video-quality-bars span {
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.3;
+}
+.video-quality-bars span.active { opacity: 1; }
+.video-quality-bars span:nth-child(1) { height: 4px; }
+.video-quality-bars span:nth-child(2) { height: 7px; }
+.video-quality-bars span:nth-child(3) { height: 11px; }
+
+/* ── Mission item progress ──────────────────────────────────────── */
+.mission-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mission-item:last-child { border-bottom: none; }
+.mission-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.mission-check.done {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.mission-check.done::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px,-1px);
+}
+.mission-label { flex: 1; font-size: 0.83rem; color: var(--ink); }
+.mission-label.done { text-decoration: line-through; color: var(--muted); }
+.mission-xp {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.mission-progress-track {
+  height: 3px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.mission-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* ── Achievement grid ───────────────────────────────────────────── */
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.ach-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  transition: transform 0.15s, border-color 0.15s;
+  cursor: default;
+}
+.ach-badge.unlocked {
+  border-color: rgba(14,163,127,0.35);
+  background: rgba(14,163,127,0.06);
+}
+.ach-badge:hover { transform: translateY(-2px); }
+.ach-icon {
+  font-size: 1.3rem;
+  filter: grayscale(1) opacity(0.35);
+}
+.ach-badge.unlocked .ach-icon { filter: none; }
+.ach-name {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.2;
+}
+.ach-badge.unlocked .ach-name { color: var(--primary); }
+
+/* ── Sound settings toggle ──────────────────────────────────────── */
+.sound-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 0.83rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.sound-toggle-row:last-child { border-bottom: none; }
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--line);
+  border-radius: 20px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  top: 3px;
+  left: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.toggle-switch input:checked + .toggle-track { background: var(--primary); }
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
+
+/* ── XP circular ring (profile) ────────────────────────────────── */
+.xp-ring-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.xp-ring {
+  width: 64px;
+  height: 64px;
+  transform: rotate(-90deg);
+}
+.xp-ring-track { fill: none; stroke: var(--line); stroke-width: 5; }
+.xp-ring-fill  {
+  fill: none;
+  stroke: url(#xpGradient);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.22,1,0.36,1);
+}
+.xp-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.xp-ring-label small { font-size: 0.55rem; color: var(--muted); font-weight: 600; }
+
+/* ── Dark overrides ──────────────────────────────────────────────── */
+body.dark-mode .leaderboard-item { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.06); }
+body.dark-mode .leaderboard-item[data-rank="1"] { background: rgba(245,158,11,0.08); }
+body.dark-mode .leaderboard-item[data-rank="2"] { background: rgba(100,116,139,0.08); }
+body.dark-mode .leaderboard-item[data-rank="3"] { background: rgba(180,83,9,0.08); }
+body.dark-mode .leaderboard-name { color: #e2e8f0; }
+body.dark-mode .interest-search { background: rgba(15,23,42,0.8); color: #e2e8f0; border-color: rgba(255,255,255,0.1); }
+body.dark-mode .interest-tag { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.08); color: #94a3b8; }
+body.dark-mode .ach-badge { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.06); }
+body.dark-mode .friend-item:hover { background: rgba(14,163,127,0.07); }
+body.dark-mode .mission-item { border-color: rgba(255,255,255,0.06); }
+body.dark-mode .sound-toggle-row { border-color: rgba(255,255,255,0.06); color: #e2e8f0; }
+body.dark-mode .party-code-display { background: rgba(15,23,42,0.7); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIDEO STAGE LAYOUT FIX — full-bleed video, no fixed-box idle,
+   uncapped height, better PiP placement
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── App grid — remove 780px height cap ────────────────────────── */
+.app-grid {
+  height: calc(100dvh - 120px);
+  min-height: 520px;
+  max-height: none;
+}
+
+/* ── Video stage — fill available column height ─────────────────── */
+.video-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Video stack — always fill remaining space ──────────────────── */
+.video-stack {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  width: 100%;
+}
+
+/* ── Remote video — cover every pixel ──────────────────────────── */
+.remote-stage,
+.remote-stage video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Idle overlay — full-bleed, no inner box ────────────────────── */
+.video-idle-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* subtle vignette on the dark bg instead of a card */
+  background: radial-gradient(ellipse at center,
+    rgba(14, 163, 127, 0.04) 0%,
+    transparent 70%);
+}
+
+/* Kill the box entirely — idle content floats on the dark background */
+.video-idle-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  max-width: 280px;
+  box-shadow: none;
+}
+
+/* Icon container — softer glow ring, no opaque bg */
+.video-idle-icon {
+  width: 80px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 40px rgba(14, 163, 127, 0.12),
+              inset 0 1px 0 rgba(255,255,255,0.07);
+  animation: idleIconFloat 3s ease-in-out infinite;
+}
+
+.video-idle-icon svg {
+  width: 36px;
+  height: 36px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.video-idle-card p {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+}
+
+/* ── PiP local — anchor above controls bar, not fixed px ────────── */
+.local-stage {
+  position: absolute;
+  right: 16px;
+  bottom: 80px;       /* sits above the floating controls bar */
+  width: 120px;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 9;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.local-stage:hover { transform: scale(1.04); opacity: 0.95; }
+.local-stage video { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Stage action bar — slim, flush to bottom ───────────────────── */
+.stage-action-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+/* ── Tablet: video fills its row, explicit height ───────────────── */
+@media (max-width: 1100px) {
+  .app-grid {
+    height: calc(100dvh - 100px);
+    min-height: 560px;
+    max-height: none;
+    grid-template-columns: 220px 1fr;
+  }
+  .video-stack {
+    min-height: 300px;
+    max-height: none;
+  }
+}
+
+/* ── Mobile: video takes natural aspect ratio, not capped ────────── */
+@media (max-width: 700px) {
+  .app-grid {
+    height: auto;
+    min-height: 0;
+  }
+  .video-stack {
+    min-height: 260px;
+    max-height: 62vw;
+    aspect-ratio: 4 / 3;
+  }
+  .local-stage {
+    width: 72px;
+    height: 96px;
+    bottom: 68px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .video-stack {
+    max-height: 58vw;
+    min-height: 220px;
+  }
+}
+
+/* ── Dark mode stage action bar ─────────────────────────────────── */
+body.dark-mode .stage-action-bar {
+  background: rgba(15, 23, 42, 0.88);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}

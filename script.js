@@ -2598,3 +2598,353 @@ window.announce = announce;
     document.documentElement.classList.add("fonts-loaded");
   });
 })();
+
+// ── Auth button loading spinner ───────────────────────────────────────────────
+
+(function patchAuthLoadingState() {
+  const loginBtn  = document.getElementById("loginButton");
+  const signupBtn = document.getElementById("signupButton");
+
+  // Observe disabled state change and add spinner class
+  const spinClass = (btn) => {
+    if (!btn) return;
+    new MutationObserver(() => {
+      btn.classList.toggle("btn-loading", btn.disabled && btn.textContent.includes("wait"));
+    }).observe(btn, { attributes: true, attributeFilter: ["disabled"] });
+  };
+  spinClass(loginBtn);
+  spinClass(signupBtn);
+})();
+
+// ── XP bar shimmer on gain ────────────────────────────────────────────────────
+
+function triggerXpShimmer() {
+  const bar = document.querySelector(".xp-bar-fill");
+  if (!bar) return;
+  bar.classList.add("gaining");
+  bar.addEventListener("animationend", () => bar.classList.remove("gaining"), { once: true });
+}
+window.triggerXpShimmer = triggerXpShimmer;
+
+// ── Session stats tracker ─────────────────────────────────────────────────────
+
+const sessionStats = (() => {
+  let messages = 0;
+  let matches  = 0;
+  let sessionStart = Date.now();
+
+  function sessionMins() {
+    return Math.floor((Date.now() - sessionStart) / 60000);
+  }
+
+  function render() {
+    const el = document.getElementById("sessionStatsStrip");
+    if (!el) return;
+    el.innerHTML = `
+      <span class="session-stat-pill">Matches <strong id="ssMatches">${matches}</strong></span>
+      <span class="session-stat-pill">Messages <strong id="ssMessages">${messages}</strong></span>
+      <span class="session-stat-pill">Time <strong>${sessionMins()}m</strong></span>`;
+  }
+
+  return {
+    addMatch()   { matches++;  render(); },
+    addMessage() { messages++; render(); },
+    render,
+  };
+})();
+
+window.sessionStats = sessionStats;
+// Tick the timer every minute
+setInterval(() => sessionStats.render(), 60000);
+
+// ── Reconnect overlay with countdown ─────────────────────────────────────────
+
+(function initReconnectOverlay() {
+  const overlay    = document.getElementById("reconnectOverlay");
+  const msgEl      = overlay?.querySelector(".reconnect-msg");
+  const countEl    = overlay?.querySelector(".reconnect-countdown");
+  if (!overlay) return;
+
+  let countdownTimer = null;
+
+  function showReconnect(seconds) {
+    overlay.hidden = false;
+    if (msgEl) msgEl.textContent = "Connection lost";
+    let remaining = seconds;
+    const tick = () => {
+      if (countEl) countEl.textContent = `Reconnecting in ${remaining}s…`;
+      if (remaining <= 0) { clearInterval(countdownTimer); return; }
+      remaining--;
+    };
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  function hideReconnect() {
+    overlay.hidden = true;
+    clearInterval(countdownTimer);
+  }
+
+  window._reconnect = { show: showReconnect, hide: hideReconnect };
+})();
+
+// ── Patch disconnect handler to show overlay ──────────────────────────────────
+
+(function patchDisconnectForOverlay() {
+  const poll = setInterval(() => {
+    if (!state.socket) return;
+    state.socket.on("disconnect", (reason) => {
+      if (reason === "io server disconnect") return; // intentional kick
+      window._reconnect?.show(10);
+    });
+    state.socket.on("connect", () => {
+      window._reconnect?.hide();
+      if (typeof toast !== "undefined") toast.success("Reconnected!", 2500);
+    });
+    clearInterval(poll);
+  }, 600);
+})();
+
+// ── Smooth scroll-to-bottom for chat ─────────────────────────────────────────
+
+(function patchChatScrollBehavior() {
+  const feed = document.getElementById("chatFeed");
+  if (!feed) return;
+
+  let userScrolled = false;
+
+  feed.addEventListener("scroll", () => {
+    const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
+    userScrolled = !atBottom;
+  }, { passive: true });
+
+  new MutationObserver(() => {
+    if (!userScrolled) {
+      feed.scrollTo({ top: feed.scrollHeight, behavior: "smooth" });
+    }
+  }).observe(feed, { childList: true });
+})();
+
+// ── Chat input: auto-resize textarea ─────────────────────────────────────────
+
+(function initAutoResizeChat() {
+  const ta = document.getElementById("chatInput");
+  if (!ta) return;
+  ta.addEventListener("input", () => {
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+  }, { passive: true });
+})();
+
+// ── Leaderboard renderer with medals + rank changes ───────────────────────────
+
+function renderLeaderboard(entries) {
+  const list = document.getElementById("leaderboardList");
+  if (!list) return;
+  if (!entries || entries.length === 0) {
+    list.innerHTML = '<div class="leaderboard-empty">No data yet. Complete matches to appear here.</div>';
+    return;
+  }
+  const medals = ["🥇", "🥈", "🥉"];
+  list.innerHTML = entries.map((e, i) => {
+    const rank = i + 1;
+    const medal = medals[i] || rank;
+    const lvlTitle = typeof rankTitle === "function" ? rankTitle(e.level || 1) : `Lv ${e.level || 1}`;
+    const xpK = e.xp >= 1000 ? (e.xp / 1000).toFixed(1) + "k" : e.xp;
+    return `
+      <div class="leaderboard-item" data-rank="${rank}">
+        <span class="leaderboard-rank">${medal}</span>
+        <div class="leaderboard-avatar" aria-hidden="true">${(e.name || "?")[0].toUpperCase()}</div>
+        <div class="leaderboard-info">
+          <div class="leaderboard-name">${escHtml(e.name || "Anonymous")}</div>
+          <div class="leaderboard-sub">${lvlTitle} · Streak ${e.streak || 0}d</div>
+        </div>
+        <span class="leaderboard-xp">${xpK} XP</span>
+      </div>`;
+  }).join("");
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+window.renderLeaderboard = renderLeaderboard;
+
+// ── Party room — copy invite code ─────────────────────────────────────────────
+
+(function initPartyCodeCopy() {
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".party-copy-btn");
+    if (!btn) return;
+    const code = btn.closest(".party-code-display")?.querySelector(".party-code-text")?.textContent?.trim();
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 2000);
+      if (typeof toast !== "undefined") toast.success("Room code copied!", 2500);
+    }).catch(() => {
+      if (typeof toast !== "undefined") toast.error("Copy failed — select it manually.", 2500);
+    });
+  });
+})();
+
+function showPartyCode(code) {
+  const label = document.getElementById("partyRoomLabel");
+  if (!label) return;
+  label.innerHTML = `
+    <div class="party-code-display">
+      <span class="party-code-text">${escHtml(code)}</span>
+      <button class="party-copy-btn" type="button">Copy</button>
+    </div>`;
+}
+window.showPartyCode = showPartyCode;
+
+// ── Interest tag search filter ────────────────────────────────────────────────
+
+(function initInterestSearch() {
+  const container = document.getElementById("interestTags");
+  if (!container) return;
+
+  // Inject search input above tags
+  const wrap = container.closest(".hype-card");
+  if (!wrap) return;
+  const existing = wrap.querySelector(".interest-search");
+  if (existing) return;
+
+  const input = document.createElement("input");
+  input.type = "search";
+  input.className = "interest-search";
+  input.placeholder = "Search interests…";
+  input.setAttribute("aria-label", "Search interest tags");
+  container.parentElement.insertBefore(input, container);
+
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    container.querySelectorAll(".interest-tag").forEach((tag) => {
+      const match = !q || tag.textContent.toLowerCase().includes(q);
+      tag.style.display = match ? "" : "none";
+    });
+  });
+})();
+
+// ── Video quality indicator ───────────────────────────────────────────────────
+
+(function initVideoQualityIndicator() {
+  const wrap = document.getElementById("matchTimerWrap")?.parentElement;
+  if (!wrap) return;
+
+  const badge = document.createElement("div");
+  badge.id = "videoQualityBadge";
+  badge.className = "video-quality-badge";
+  badge.setAttribute("aria-label", "Video call quality");
+  badge.innerHTML = `
+    <span class="video-quality-bars">
+      <span></span><span></span><span></span>
+    </span>
+    <span id="videoQualityLabel"></span>`;
+  badge.hidden = true;
+  wrap.appendChild(badge);
+
+  function setQuality(level) { // "excellent" | "good" | "poor"
+    badge.hidden = false;
+    badge.className = `video-quality-badge ${level}`;
+    const bars = badge.querySelectorAll(".video-quality-bars span");
+    const counts = { excellent: 3, good: 2, poor: 1 };
+    bars.forEach((b, i) => b.classList.toggle("active", i < counts[level]));
+    badge.querySelector("#videoQualityLabel").textContent = level;
+    badge.setAttribute("aria-label", `Video quality: ${level}`);
+  }
+
+  // Poll RTT from peerConnection stats if available
+  function pollQuality() {
+    const pc = state?.peerConnection;
+    if (!pc) { badge.hidden = true; return; }
+    pc.getStats().then((stats) => {
+      stats.forEach((report) => {
+        if (report.type === "candidate-pair" && report.state === "succeeded") {
+          const rtt = report.currentRoundTripTime * 1000 || report.totalRoundTripTime * 1000;
+          if (rtt < 80)       setQuality("excellent");
+          else if (rtt < 250) setQuality("good");
+          else                setQuality("poor");
+        }
+      });
+    }).catch(() => {});
+  }
+
+  setInterval(pollQuality, 4000);
+  window._setVideoQuality = setQuality;
+})();
+
+// ── Achievement grid renderer ─────────────────────────────────────────────────
+
+function renderAchievementGrid(achievements, unlocked = []) {
+  const container = document.getElementById("achievementsList");
+  if (!container) return;
+  container.className = "achievements-grid";
+  container.innerHTML = achievements.map((ach) => {
+    const done = unlocked.includes(ach.id);
+    return `
+      <div class="ach-badge ${done ? "unlocked" : ""}" data-tip="${escHtml(ach.label)}${ach.xpReward ? ` (+${ach.xpReward} XP)` : ""}">
+        <span class="ach-icon" aria-hidden="true">${ach.icon || "⭐"}</span>
+        <span class="ach-name">${escHtml(ach.label)}</span>
+      </div>`;
+  }).join("");
+}
+window.renderAchievementGrid = renderAchievementGrid;
+
+// ── XP circular ring updater ──────────────────────────────────────────────────
+
+function updateXpRing(currentXp, nextLevelXp, prevLevelXp = 0) {
+  const fill = document.querySelector(".xp-ring-fill");
+  if (!fill) return;
+  const r = 27; // radius
+  const circ = 2 * Math.PI * r;
+  const progress = Math.min((currentXp - prevLevelXp) / Math.max(nextLevelXp - prevLevelXp, 1), 1);
+  fill.style.strokeDasharray = circ;
+  fill.style.strokeDashoffset = circ * (1 - progress);
+}
+window.updateXpRing = updateXpRing;
+
+// ── Sound settings ────────────────────────────────────────────────────────────
+
+const soundSettings = (() => {
+  const KEYS = { match: "snd_match", levelup: "snd_levelup", message: "snd_message" };
+  const state = {};
+
+  try {
+    Object.entries(KEYS).forEach(([k, sk]) => {
+      state[k] = localStorage.getItem(sk) !== "0";
+    });
+  } catch { Object.keys(KEYS).forEach(k => { state[k] = true; }); }
+
+  function save(key, val) {
+    state[key] = val;
+    try { localStorage.setItem(KEYS[key], val ? "1" : "0"); } catch {}
+  }
+
+  function isEnabled(key) { return state[key] !== false; }
+
+  return { save, isEnabled };
+})();
+
+window.soundSettings = soundSettings;
+
+// Patch playSound to respect settings
+const _origPlaySound = window.playSound;
+window.playSound = function(name) {
+  if (soundSettings.isEnabled(name)) _origPlaySound?.(name);
+};
+
+// ── Wire sound setting toggles ─────────────────────────────────────────────────
+
+(function initSoundToggles() {
+  const map = { sndMatch: "match", sndLevelup: "levelup", sndMessage: "message" };
+  Object.entries(map).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.checked = soundSettings.isEnabled(key);
+    el.addEventListener("change", () => soundSettings.save(key, el.checked));
+  });
+})();
