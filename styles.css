@@ -4568,3 +4568,243 @@ html.data-saver *::after {
   content-visibility: auto;
   contain-intrinsic-size: auto 360px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FINAL BATCH — Auth spinner, chat bubbles, scrollbars, session
+   stats, empty states, XP shimmer, reconnect overlay
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Button loading spinner ─────────────────────────────────────── */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  inset: 50% 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ghost-button.btn-loading::after {
+  border-color: rgba(14,163,127,0.3);
+  border-top-color: var(--primary);
+}
+
+/* ── Chat message bubbles ───────────────────────────────────────── */
+.chat-message {
+  max-width: 82%;
+  padding: 8px 13px;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  word-break: break-word;
+  position: relative;
+}
+.chat-message.outgoing {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--primary), #0a896a);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  margin-left: auto;
+}
+.chat-message.incoming {
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-bottom-left-radius: 4px;
+}
+.chat-message.system-msg {
+  align-self: center;
+  background: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 3px 8px;
+  max-width: 100%;
+  text-align: center;
+}
+.chat-message .msg-time {
+  font-size: 0.65rem;
+  opacity: 0.55;
+  margin-top: 3px;
+  display: block;
+}
+.chat-message.outgoing .msg-time { text-align: right; }
+
+/* ── Chat feed scrollbar ────────────────────────────────────────── */
+.chat-feed {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(14,163,127,0.3) transparent;
+}
+.chat-feed::-webkit-scrollbar { width: 5px; }
+.chat-feed::-webkit-scrollbar-track { background: transparent; }
+.chat-feed::-webkit-scrollbar-thumb {
+  background: rgba(14,163,127,0.3);
+  border-radius: 10px;
+}
+.chat-feed::-webkit-scrollbar-thumb:hover { background: rgba(14,163,127,0.55); }
+
+/* ── Global thin scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.35); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(14,163,127,0.45); }
+
+/* ── Empty state ────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+.empty-state-icon {
+  width: 44px;
+  height: 44px;
+  opacity: 0.35;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.empty-state p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ── Reconnect overlay ──────────────────────────────────────────── */
+.reconnect-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(10,15,30,0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: inherit;
+  color: #fff;
+  text-align: center;
+  padding: 24px;
+}
+.reconnect-overlay[hidden] { display: none; }
+.reconnect-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.reconnect-msg {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+}
+.reconnect-countdown {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.55);
+}
+
+/* ── Session stats pill strip ───────────────────────────────────── */
+.session-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+.session-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.session-stat-pill strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── XP bar shimmer on gain ─────────────────────────────────────── */
+@keyframes xpShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.xp-bar-fill.gaining {
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0%,
+    #34d399 40%,
+    var(--primary) 60%,
+    var(--accent) 100%
+  ) !important;
+  background-size: 200% auto !important;
+  animation: xpShimmer 0.9s ease both;
+}
+
+/* ── Leaderboard empty state ────────────────────────────────────── */
+.leaderboard-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+/* ── Auth modal close button ────────────────────────────────────── */
+.auth-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.auth-close-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* ── Dark mode ──────────────────────────────────────────────────── */
+body.dark-mode .chat-message.incoming {
+  background: rgba(30,41,59,0.9);
+  border-color: rgba(255,255,255,0.07);
+  color: #e2e8f0;
+}
+body.dark-mode .chat-message.outgoing {
+  background: linear-gradient(135deg, #0a896a, #0f6ee9);
+}
+body.dark-mode .session-stat-pill {
+  background: rgba(15,23,42,0.7);
+  border-color: rgba(255,255,255,0.07);
+}
+body.dark-mode .session-stat-pill strong { color: #f1f5f9; }
+body.dark-mode .reconnect-overlay { background: rgba(5,8,18,0.82); }
+body.dark-mode .empty-state { color: #64748b; }

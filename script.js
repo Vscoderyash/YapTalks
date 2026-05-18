@@ -2598,3 +2598,140 @@ window.announce = announce;
     document.documentElement.classList.add("fonts-loaded");
   });
 })();
+
+// ── Auth button loading spinner ───────────────────────────────────────────────
+
+(function patchAuthLoadingState() {
+  const loginBtn  = document.getElementById("loginButton");
+  const signupBtn = document.getElementById("signupButton");
+
+  // Observe disabled state change and add spinner class
+  const spinClass = (btn) => {
+    if (!btn) return;
+    new MutationObserver(() => {
+      btn.classList.toggle("btn-loading", btn.disabled && btn.textContent.includes("wait"));
+    }).observe(btn, { attributes: true, attributeFilter: ["disabled"] });
+  };
+  spinClass(loginBtn);
+  spinClass(signupBtn);
+})();
+
+// ── XP bar shimmer on gain ────────────────────────────────────────────────────
+
+function triggerXpShimmer() {
+  const bar = document.querySelector(".xp-bar-fill");
+  if (!bar) return;
+  bar.classList.add("gaining");
+  bar.addEventListener("animationend", () => bar.classList.remove("gaining"), { once: true });
+}
+window.triggerXpShimmer = triggerXpShimmer;
+
+// ── Session stats tracker ─────────────────────────────────────────────────────
+
+const sessionStats = (() => {
+  let messages = 0;
+  let matches  = 0;
+  let sessionStart = Date.now();
+
+  function sessionMins() {
+    return Math.floor((Date.now() - sessionStart) / 60000);
+  }
+
+  function render() {
+    const el = document.getElementById("sessionStatsStrip");
+    if (!el) return;
+    el.innerHTML = `
+      <span class="session-stat-pill">Matches <strong id="ssMatches">${matches}</strong></span>
+      <span class="session-stat-pill">Messages <strong id="ssMessages">${messages}</strong></span>
+      <span class="session-stat-pill">Time <strong>${sessionMins()}m</strong></span>`;
+  }
+
+  return {
+    addMatch()   { matches++;  render(); },
+    addMessage() { messages++; render(); },
+    render,
+  };
+})();
+
+window.sessionStats = sessionStats;
+// Tick the timer every minute
+setInterval(() => sessionStats.render(), 60000);
+
+// ── Reconnect overlay with countdown ─────────────────────────────────────────
+
+(function initReconnectOverlay() {
+  const overlay    = document.getElementById("reconnectOverlay");
+  const msgEl      = overlay?.querySelector(".reconnect-msg");
+  const countEl    = overlay?.querySelector(".reconnect-countdown");
+  if (!overlay) return;
+
+  let countdownTimer = null;
+
+  function showReconnect(seconds) {
+    overlay.hidden = false;
+    if (msgEl) msgEl.textContent = "Connection lost";
+    let remaining = seconds;
+    const tick = () => {
+      if (countEl) countEl.textContent = `Reconnecting in ${remaining}s…`;
+      if (remaining <= 0) { clearInterval(countdownTimer); return; }
+      remaining--;
+    };
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  function hideReconnect() {
+    overlay.hidden = true;
+    clearInterval(countdownTimer);
+  }
+
+  window._reconnect = { show: showReconnect, hide: hideReconnect };
+})();
+
+// ── Patch disconnect handler to show overlay ──────────────────────────────────
+
+(function patchDisconnectForOverlay() {
+  const poll = setInterval(() => {
+    if (!state.socket) return;
+    state.socket.on("disconnect", (reason) => {
+      if (reason === "io server disconnect") return; // intentional kick
+      window._reconnect?.show(10);
+    });
+    state.socket.on("connect", () => {
+      window._reconnect?.hide();
+      if (typeof toast !== "undefined") toast.success("Reconnected!", 2500);
+    });
+    clearInterval(poll);
+  }, 600);
+})();
+
+// ── Smooth scroll-to-bottom for chat ─────────────────────────────────────────
+
+(function patchChatScrollBehavior() {
+  const feed = document.getElementById("chatFeed");
+  if (!feed) return;
+
+  let userScrolled = false;
+
+  feed.addEventListener("scroll", () => {
+    const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
+    userScrolled = !atBottom;
+  }, { passive: true });
+
+  new MutationObserver(() => {
+    if (!userScrolled) {
+      feed.scrollTo({ top: feed.scrollHeight, behavior: "smooth" });
+    }
+  }).observe(feed, { childList: true });
+})();
+
+// ── Chat input: auto-resize textarea ─────────────────────────────────────────
+
+(function initAutoResizeChat() {
+  const ta = document.getElementById("chatInput");
+  if (!ta) return;
+  ta.addEventListener("input", () => {
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+  }, { passive: true });
+})();

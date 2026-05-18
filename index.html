@@ -545,9 +545,23 @@
               <button class="ghost-button" id="enhanceButton" type="button">HD</button>
               <button class="primary-button" id="findMatchButton" type="button">Find match</button>
             </div>
+
+            <!-- Reconnect overlay (shown on connection drop) -->
+            <div class="reconnect-overlay" id="reconnectOverlay" hidden>
+              <div class="reconnect-spinner" aria-hidden="true"></div>
+              <p class="reconnect-msg">Connection lost</p>
+              <p class="reconnect-countdown" aria-live="polite"></p>
+            </div>
           </section>
 
           <aside class="panel chat-panel">
+
+            <!-- Session stats strip -->
+            <div class="session-stats" id="sessionStatsStrip" aria-label="Session statistics">
+              <span class="session-stat-pill">Matches <strong>0</strong></span>
+              <span class="session-stat-pill">Messages <strong>0</strong></span>
+              <span class="session-stat-pill">Time <strong>0m</strong></span>
+            </div>
 
             <div class="chat-header">
               <div class="chat-header-info">
@@ -643,12 +657,12 @@
 
       <label class="field">
         <span>Name (optional)</span>
-        <input id="authName" type="text" placeholder="Your name">
+        <input id="authName" type="text" placeholder="Your name" aria-label="Display name" autocomplete="name">
       </label>
 
       <label class="field">
         <span>Email</span>
-        <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" aria-label="Email address" inputmode="email">
       </label>
 
       <label class="field">
