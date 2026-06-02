@@ -153,6 +153,29 @@ h3,
   gap: 10px;
 }
 
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.topbar-nav a {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 9px 10px;
+  border-radius: 10px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.topbar-nav a:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .status-pill,
 .badge {
   display: inline-flex;
@@ -1262,6 +1285,51 @@ h3 {
 
 .footer-links a:hover {
   text-decoration: underline;
+}
+
+.publisher-guide {
+  margin: 20px 0 24px;
+}
+
+.publisher-guide-head {
+  max-width: 780px;
+  margin-bottom: 14px;
+}
+
+.publisher-guide-head h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.publisher-guide-head p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.publisher-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.publisher-guide-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.publisher-guide-card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.publisher-guide-card p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .policy-shell {
@@ -4246,6 +4314,23 @@ body.dark-mode .audio-visualizer.is-speaking .audio-bar {
   display: none;
 }
 @media (max-width: 640px) {
+  .topbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .topbar-nav {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .publisher-guide-grid {
+    grid-template-columns: 1fr;
+  }
+
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
@@ -4387,6 +4472,16 @@ body.dark-mode .mobile-bottom-nav {
 }
 body.dark-mode .mobile-nav-btn.active {
   background: rgba(14, 163, 127, 0.1);
+}
+
+body.dark-mode .topbar-nav a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+body.dark-mode .publisher-guide-card {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ═══════════════════════════════════════════════════════════════════

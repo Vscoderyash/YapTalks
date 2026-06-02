@@ -3,7 +3,11 @@
 
 User-agent: *
 Allow: /
+Allow: /about.html
+Allow: /safety.html
+Allow: /terms.html
 Allow: /privacy.html
+Allow: /ads.txt
 Allow: /og-image.svg
 Allow: /favicon.svg
 Allow: /manifest.webmanifest

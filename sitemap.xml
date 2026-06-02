@@ -6,7 +6,7 @@
 
   <url>
     <loc>https://yaptalks.vercel.app/</loc>
-    <lastmod>2026-05-10</lastmod>
+    <lastmod>2026-08-08</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <mobile:mobile/>
@@ -21,15 +21,39 @@
 
   <url>
     <loc>https://yaptalks.vercel.app/privacy.html</loc>
-    <lastmod>2026-05-10</lastmod>
+    <lastmod>2026-08-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
     <mobile:mobile/>
   </url>
 
   <url>
+    <loc>https://yaptalks.vercel.app/about.html</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://yaptalks.vercel.app/safety.html</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://yaptalks.vercel.app/terms.html</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
     <loc>https://yaptalks.onrender.com/</loc>
-    <lastmod>2026-05-10</lastmod>
+    <lastmod>2026-08-08</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <mobile:mobile/>
@@ -41,9 +65,33 @@
 
   <url>
     <loc>https://yaptalks.onrender.com/privacy.html</loc>
-    <lastmod>2026-05-10</lastmod>
+    <lastmod>2026-08-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://yaptalks.onrender.com/about.html</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://yaptalks.onrender.com/safety.html</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <mobile:mobile/>
+  </url>
+
+  <url>
+    <loc>https://yaptalks.onrender.com/terms.html</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
     <mobile:mobile/>
   </url>
 </urlset>
