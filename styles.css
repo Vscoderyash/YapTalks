@@ -5435,6 +5435,24 @@ body.dark-mode .party-code-display { background: rgba(15,23,42,0.7); }
 .local-stage:hover { transform: scale(1.04); opacity: 0.95; }
 .local-stage video { width: 100%; height: 100%; object-fit: cover; }
 
+.anime-preview-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  z-index: 2;
+}
+
+.local-stage.anime-transforming video {
+  opacity: 0;
+}
+
+.local-stage.anime-transforming .anime-preview-canvas {
+  display: block;
+}
+
 /* ── Stage action bar — slim, flush to bottom ───────────────────── */
 .stage-action-bar {
   flex-shrink: 0;

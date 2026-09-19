@@ -96,6 +96,18 @@ const ANIME_CHARS = [
   { id: "zoro",     name: "Zoro",     emoji: "🗡️", filter: "hue-rotate(92deg) saturate(1.5) contrast(1.2)",             color: "#4ade80" },
 ];
 
+const ANIME_EFFECTS = {
+  naruto:   { label: "Shinobi",   accent: "#f97316", secondary: "#111827", hair: "#f59e0b", symbol: "leaf",      marks: "whiskers", aura: "flame" },
+  goku:     { label: "Saiyan",    accent: "#facc15", secondary: "#f97316", hair: "#facc15", symbol: "bolt",      marks: "energy",   aura: "burst" },
+  luffy:    { label: "Captain",   accent: "#ef4444", secondary: "#facc15", hair: "#111827", symbol: "straw",     marks: "scar",     aura: "waves" },
+  levi:     { label: "Captain",   accent: "#94a3b8", secondary: "#111827", hair: "#0f172a", symbol: "blades",    marks: "shadow",   aura: "steel" },
+  gojo:     { label: "Limitless", accent: "#a78bfa", secondary: "#38bdf8", hair: "#f8fafc", symbol: "blindfold", marks: "glow",     aura: "void" },
+  tanjiro:  { label: "Slayer",    accent: "#22c55e", secondary: "#ef4444", hair: "#3f1d12", symbol: "hanafuda",  marks: "scar",     aura: "embers" },
+  todoroki: { label: "Dual",      accent: "#38bdf8", secondary: "#ef4444", hair: "#f8fafc", symbol: "split",     marks: "icefire",  aura: "dual" },
+  saitama:  { label: "Hero",      accent: "#fbbf24", secondary: "#ef4444", hair: "#f8fafc", symbol: "cape",      marks: "shine",    aura: "clean" },
+  zoro:     { label: "Swordsman", accent: "#4ade80", secondary: "#22c55e", hair: "#064e3b", symbol: "bandana",   marks: "scar",     aura: "slash" },
+};
+
 const PROMPTS = [
   "Drop your hottest take in 10 seconds.",
   "Tell one funny truth and one fake thing.",
@@ -1079,7 +1091,7 @@ async function ensureLocalStream() {
     if (state.animeChar !== "none") {
       const char = ANIME_CHARS.find((c) => c.id === state.animeChar);
       if (char) {
-        startCanvasFilterLoop(char.filter);
+        startCanvasFilterLoop(char);
         if (els.localVideo) els.localVideo.style.filter = char.filter;
       }
     }
@@ -1611,16 +1623,235 @@ function stopCanvasFilterLoop() {
   }
 }
 
-function startCanvasFilterLoop(cssFilter) {
+function stopFilteredStream() {
+  if (!state.filteredStream) return;
+  state.filteredStream.getTracks().forEach((track) => track.stop());
+  state.filteredStream = null;
+}
+
+function hexToRgba(hex, alpha = 1) {
+  const clean = String(hex || "#0ea37f").replace("#", "");
+  const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+  const int = Number.parseInt(full, 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawAnimeAura(ctx, canvas, effect, t) {
+  const cx = canvas.width / 2;
+  const cy = canvas.height * 0.43;
+  const pulse = 1 + Math.sin(t / 340) * 0.05;
+  const radius = Math.min(canvas.width, canvas.height) * 0.42 * pulse;
+  const gradient = ctx.createRadialGradient(cx, cy, radius * 0.12, cx, cy, radius);
+  gradient.addColorStop(0, hexToRgba(effect.accent, 0.22));
+  gradient.addColorStop(0.55, hexToRgba(effect.secondary, 0.12));
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = hexToRgba(effect.accent, 0.32);
+  ctx.lineWidth = Math.max(2, canvas.width * 0.004);
+  for (let i = 0; i < 9; i += 1) {
+    const angle = (t / 900) + (i * Math.PI * 2) / 9;
+    const x1 = cx + Math.cos(angle) * radius * 0.38;
+    const y1 = cy + Math.sin(angle) * radius * 0.28;
+    const x2 = cx + Math.cos(angle) * radius * 0.62;
+    const y2 = cy + Math.sin(angle) * radius * 0.48;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAnimeHair(ctx, canvas, effect) {
+  const cx = canvas.width / 2;
+  const top = canvas.height * 0.105;
+  const scale = Math.min(canvas.width, canvas.height);
+  const spikeW = scale * 0.07;
+  const spikeH = scale * 0.14;
+  ctx.save();
+  ctx.fillStyle = effect.hair;
+  ctx.strokeStyle = hexToRgba(effect.accent, 0.75);
+  ctx.lineWidth = Math.max(2, scale * 0.004);
+  for (let i = -4; i <= 4; i += 1) {
+    const baseX = cx + i * spikeW * 0.72;
+    const peakX = baseX + (i % 2 === 0 ? -spikeW * 0.18 : spikeW * 0.18);
+    const peakY = top + Math.abs(i) * spikeH * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(baseX - spikeW * 0.55, top + spikeH * 0.95);
+    ctx.lineTo(peakX, peakY);
+    ctx.lineTo(baseX + spikeW * 0.55, top + spikeH * 0.95);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAnimeSymbol(ctx, canvas, effect) {
+  const cx = canvas.width / 2;
+  const y = canvas.height * 0.21;
+  const scale = Math.min(canvas.width, canvas.height);
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  if (effect.symbol === "straw") {
+    ctx.fillStyle = hexToRgba(effect.secondary, 0.96);
+    drawRoundedRect(ctx, cx - scale * 0.22, y - scale * 0.055, scale * 0.44, scale * 0.08, scale * 0.03);
+    ctx.fill();
+    ctx.fillStyle = hexToRgba(effect.accent, 0.95);
+    ctx.fillRect(cx - scale * 0.22, y - scale * 0.025, scale * 0.44, scale * 0.018);
+  } else if (effect.symbol === "blindfold") {
+    ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+    drawRoundedRect(ctx, cx - scale * 0.18, y - scale * 0.035, scale * 0.36, scale * 0.07, scale * 0.035);
+    ctx.fill();
+    ctx.strokeStyle = hexToRgba(effect.secondary, 0.9);
+    ctx.lineWidth = scale * 0.005;
+    ctx.stroke();
+  } else if (effect.symbol === "split") {
+    ctx.fillStyle = hexToRgba(effect.accent, 0.9);
+    ctx.fillRect(cx - scale * 0.2, y - scale * 0.042, scale * 0.2, scale * 0.084);
+    ctx.fillStyle = hexToRgba(effect.secondary, 0.9);
+    ctx.fillRect(cx, y - scale * 0.042, scale * 0.2, scale * 0.084);
+  } else if (effect.symbol === "bandana") {
+    ctx.fillStyle = hexToRgba(effect.accent, 0.95);
+    drawRoundedRect(ctx, cx - scale * 0.2, y - scale * 0.04, scale * 0.4, scale * 0.075, scale * 0.02);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = hexToRgba(effect.accent, 0.9);
+    drawRoundedRect(ctx, cx - scale * 0.19, y - scale * 0.045, scale * 0.38, scale * 0.09, scale * 0.03);
+    ctx.fill();
+    ctx.strokeStyle = hexToRgba(effect.secondary, 0.95);
+    ctx.lineWidth = scale * 0.006;
+    ctx.beginPath();
+    ctx.moveTo(cx - scale * 0.045, y);
+    ctx.lineTo(cx, y - scale * 0.026);
+    ctx.lineTo(cx + scale * 0.045, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAnimeMarks(ctx, canvas, effect) {
+  const cx = canvas.width / 2;
+  const cy = canvas.height * 0.39;
+  const scale = Math.min(canvas.width, canvas.height);
+  ctx.save();
+  ctx.strokeStyle = hexToRgba(effect.accent, 0.88);
+  ctx.lineWidth = Math.max(2, scale * 0.006);
+  ctx.lineCap = "round";
+
+  if (effect.marks === "whiskers") {
+    [-1, 1].forEach((side) => {
+      for (let i = -1; i <= 1; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(cx + side * scale * 0.085, cy + i * scale * 0.028);
+        ctx.lineTo(cx + side * scale * 0.19, cy + i * scale * 0.018);
+        ctx.stroke();
+      }
+    });
+  } else if (effect.marks === "scar" || effect.marks === "icefire") {
+    ctx.beginPath();
+    ctx.moveTo(cx - scale * 0.12, cy - scale * 0.06);
+    ctx.lineTo(cx - scale * 0.045, cy + scale * 0.055);
+    ctx.stroke();
+  } else {
+    ctx.shadowColor = effect.accent;
+    ctx.shadowBlur = scale * 0.04;
+    ctx.beginPath();
+    ctx.arc(cx - scale * 0.08, cy - scale * 0.015, scale * 0.018, 0, Math.PI * 2);
+    ctx.arc(cx + scale * 0.08, cy - scale * 0.015, scale * 0.018, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAnimeNameplate(ctx, canvas, char, effect) {
+  const width = Math.min(canvas.width * 0.52, 360);
+  const height = Math.max(42, canvas.height * 0.075);
+  const x = canvas.width * 0.04;
+  const y = canvas.height - height - canvas.height * 0.04;
+  ctx.save();
+  drawRoundedRect(ctx, x, y, width, height, 16);
+  ctx.fillStyle = "rgba(6, 10, 24, 0.68)";
+  ctx.fill();
+  ctx.strokeStyle = hexToRgba(effect.accent, 0.85);
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `700 ${Math.max(16, canvas.width * 0.023)}px Outfit, Segoe UI, sans-serif`;
+  ctx.fillText(`${char.name} Mode`, x + 16, y + height * 0.48);
+  ctx.fillStyle = hexToRgba(effect.accent, 0.95);
+  ctx.font = `700 ${Math.max(11, canvas.width * 0.014)}px Outfit, Segoe UI, sans-serif`;
+  ctx.fillText(effect.label.toUpperCase(), x + 16, y + height * 0.78);
+  ctx.restore();
+}
+
+function drawAnimeTransformation(ctx, canvas, char, time) {
+  if (!char || char.id === "none") return;
+  const effect = ANIME_EFFECTS[char.id] || {
+    label: "Anime",
+    accent: char.color || "#0ea37f",
+    secondary: "#0f6ee9",
+    hair: char.color || "#0ea37f",
+    symbol: "default",
+    marks: "glow",
+    aura: "clean",
+  };
+
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = hexToRgba(effect.accent, 0.08);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  drawAnimeAura(ctx, canvas, effect, time);
+  drawAnimeHair(ctx, canvas, effect);
+  drawAnimeSymbol(ctx, canvas, effect);
+  drawAnimeMarks(ctx, canvas, effect);
+  drawAnimeNameplate(ctx, canvas, char, effect);
+}
+
+function startCanvasFilterLoop(char) {
   stopCanvasFilterLoop();
+  stopFilteredStream();
   if (!els.localVideo) return;
 
   if (!state.filterCanvas) {
     state.filterCanvas = document.createElement("canvas");
+    state.filterCanvas.className = "anime-preview-canvas";
     state.filterCanvas.width = 1280;
     state.filterCanvas.height = 720;
     state.filterCtx = state.filterCanvas.getContext("2d");
   }
+  if (els.localStage && !els.localStage.contains(state.filterCanvas)) {
+    els.localStage.appendChild(state.filterCanvas);
+  }
+  if (els.localStage) els.localStage.classList.add("anime-transforming");
 
   const ctx = state.filterCtx;
   const canvas = state.filterCanvas;
@@ -1636,8 +1867,11 @@ function startCanvasFilterLoop(cssFilter) {
       canvas.width = vw;
       canvas.height = vh;
     }
-    ctx.filter = cssFilter;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.filter = char.filter || "none";
     ctx.drawImage(els.localVideo, 0, 0, canvas.width, canvas.height);
+    ctx.filter = "none";
+    drawAnimeTransformation(ctx, canvas, char, performance.now());
     state.filterAnimFrame = requestAnimationFrame(draw);
   }
 
@@ -1663,16 +1897,17 @@ function applyAnimeFilter(charId) {
 
   if (char.id === "none") {
     stopCanvasFilterLoop();
-    state.filteredStream = null;
+    stopFilteredStream();
     if (els.localVideo) els.localVideo.style.filter = "";
+    if (els.localStage) els.localStage.classList.remove("anime-transforming");
     if (state.stream) {
       const rawVideo = state.stream.getVideoTracks()[0];
       replaceRTCVideoTrack(rawVideo);
     }
   } else {
-    startCanvasFilterLoop(char.filter);
-    // CSS filter on localVideo = what the user sees in their own preview
-    // Canvas stream = what the peer actually receives via WebRTC
+    startCanvasFilterLoop(char);
+    // CSS filter on localVideo = instant local preview
+    // Canvas stream = full transformed video the peer actually receives via WebRTC
     if (els.localVideo) els.localVideo.style.filter = char.filter;
     if (state.filteredStream) {
       const canvasVideo = state.filteredStream.getVideoTracks()[0];
