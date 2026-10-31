@@ -262,6 +262,46 @@ function cleanupMatch(socketId, reason = "left") {
   if (currentSocket) currentSocket.leave(roomId);
 }
 
+function relayMatchSignal(socketId, eventName, payload, signalKey) {
+  const active = activeMatches.get(socketId);
+  if (!active) return;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    addSuspicion(socketId, 5);
+    return;
+  }
+
+  const targetId = typeof payload.to === "string" ? payload.to : "";
+  if (!targetId || targetId !== active.peerId) return;
+
+  const reciprocal = activeMatches.get(targetId);
+  if (!reciprocal || reciprocal.peerId !== socketId || reciprocal.roomId !== active.roomId) return;
+
+  const signal = payload[signalKey];
+  if (!signal || typeof signal !== "object") {
+    addSuspicion(socketId, 5);
+    return;
+  }
+  io.to(targetId).emit(eventName, { from: socketId, [signalKey]: signal });
+}
+
+function relaySquadSignal(socketId, eventName, payload, signalKey) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    addSuspicion(socketId, 5);
+    return;
+  }
+  const code = memberParty.get(socketId);
+  const room = code ? partyRooms.get(code) : null;
+  const targetId = typeof payload.to === "string" ? payload.to : "";
+  if (!room?.callMembers?.has(socketId) || !targetId || !room.callMembers.has(targetId)) return;
+
+  const signal = payload[signalKey];
+  if (!signal || typeof signal !== "object") {
+    addSuspicion(socketId, 5);
+    return;
+  }
+  io.to(targetId).emit(eventName, { from: socketId, [signalKey]: signal });
+}
+
 function topLeaderboard(limit = 10) {
   return Array.from(leaderboard.values())
     .sort((a, b) => {
@@ -811,11 +851,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 20);
       return;
     }
-    if (!payload.to || !payload.sdp) {
-      addSuspicion(socket.id, 5);
-      return;
-    }
-    io.to(payload.to).emit("webrtc-offer", { from: socket.id, sdp: payload.sdp });
+    relayMatchSignal(socket.id, "webrtc-offer", payload, "sdp");
   });
 
   socket.on("webrtc-answer", (payload = {}) => {
@@ -823,11 +859,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 20);
       return;
     }
-    if (!payload.to || !payload.sdp) {
-      addSuspicion(socket.id, 5);
-      return;
-    }
-    io.to(payload.to).emit("webrtc-answer", { from: socket.id, sdp: payload.sdp });
+    relayMatchSignal(socket.id, "webrtc-answer", payload, "sdp");
   });
 
   socket.on("webrtc-ice-candidate", (payload = {}) => {
@@ -835,11 +867,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 20);
       return;
     }
-    if (!payload.to || !payload.candidate) {
-      addSuspicion(socket.id, 5);
-      return;
-    }
-    io.to(payload.to).emit("webrtc-ice-candidate", { from: socket.id, candidate: payload.candidate });
+    relayMatchSignal(socket.id, "webrtc-ice-candidate", payload, "candidate");
   });
 
   socket.on("squad-webrtc-offer", (payload = {}) => {
@@ -847,10 +875,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 20);
       return;
     }
-    const code = memberParty.get(socket.id);
-    const room = code ? partyRooms.get(code) : null;
-    if (!room?.callMembers?.has(socket.id) || !room.callMembers.has(payload.to) || !payload.sdp) return;
-    io.to(payload.to).emit("squad-webrtc-offer", { from: socket.id, sdp: payload.sdp });
+    relaySquadSignal(socket.id, "squad-webrtc-offer", payload, "sdp");
   });
 
   socket.on("squad-webrtc-answer", (payload = {}) => {
@@ -858,10 +883,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 20);
       return;
     }
-    const code = memberParty.get(socket.id);
-    const room = code ? partyRooms.get(code) : null;
-    if (!room?.callMembers?.has(socket.id) || !room.callMembers.has(payload.to) || !payload.sdp) return;
-    io.to(payload.to).emit("squad-webrtc-answer", { from: socket.id, sdp: payload.sdp });
+    relaySquadSignal(socket.id, "squad-webrtc-answer", payload, "sdp");
   });
 
   socket.on("squad-webrtc-ice-candidate", (payload = {}) => {
@@ -869,10 +891,7 @@ io.on("connection", (socket) => {
       addSuspicion(socket.id, 20);
       return;
     }
-    const code = memberParty.get(socket.id);
-    const room = code ? partyRooms.get(code) : null;
-    if (!room?.callMembers?.has(socket.id) || !room.callMembers.has(payload.to) || !payload.candidate) return;
-    io.to(payload.to).emit("squad-webrtc-ice-candidate", { from: socket.id, candidate: payload.candidate });
+    relaySquadSignal(socket.id, "squad-webrtc-ice-candidate", payload, "candidate");
   });
 
   socket.on("anime-theme", (payload = {}) => {
