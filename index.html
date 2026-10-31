@@ -547,6 +547,14 @@
                 </div>
                 <p id="partyRoomLabel">No active room.</p>
                 <div class="party-members" id="partyMembers"></div>
+                <section class="party-squad" aria-label="Squad video">
+                  <div class="party-squad-heading">
+                    <strong>Squad Video</strong>
+                    <span id="partyCallStatus">Join a room to call</span>
+                  </div>
+                  <button class="secondary-button wide" id="partyCallButton" type="button" disabled>Join Squad Video</button>
+                  <div class="party-call-grid" id="partyCallGrid" aria-live="polite"></div>
+                </section>
                 <div class="party-composer">
                   <input id="partyChatInput" type="text" maxlength="220" placeholder="Send a room message...">
                   <button class="primary-button wide" id="partySendButton" type="button">Send to party</button>
@@ -630,6 +638,10 @@
 
             <!-- Action bar below video -->
             <div class="stage-action-bar">
+              <div class="match-mode-switch" id="matchModeSwitch" role="group" aria-label="Match type">
+                <button type="button" data-match-mode="video" aria-pressed="true">Video</button>
+                <button type="button" data-match-mode="text" aria-pressed="false">Text</button>
+              </div>
               <button class="ghost-button" id="previewButton" type="button">Enable camera</button>
               <button class="ghost-button" id="enhanceButton" type="button">HD</button>
               <button class="primary-button" id="findMatchButton" type="button">Find match</button>
@@ -657,7 +669,7 @@
                 <span class="chat-status-dot"></span>
                 <div>
                   <h3>Live Chat</h3>
-                  <span class="chat-subtitle">Connect to start chatting</span>
+                  <span class="chat-subtitle" id="chatSubtitle">Connect to start chatting</span>
                 </div>
               </div>
               <div class="emoji-reactions" id="emojiReactions">

@@ -5512,3 +5512,142 @@ body.dark-mode .stage-action-bar {
   background: rgba(15, 23, 42, 0.88);
   border-top-color: rgba(255, 255, 255, 0.06);
 }
+
+.match-mode-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.match-mode-switch button {
+  min-width: 62px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.match-mode-switch button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--primary);
+  box-shadow: 0 2px 6px rgba(10, 137, 106, 0.22);
+}
+
+.video-stack.text-only-match .remote-stage video {
+  opacity: 0;
+}
+
+.video-stack.text-only-match .video-idle-overlay {
+  z-index: 5;
+  background: rgba(13, 24, 37, 0.94);
+}
+
+.video-stack.text-only-match .video-idle-icon svg {
+  display: none;
+}
+
+.video-stack.text-only-match .video-idle-icon::after {
+  content: "Aa";
+  color: #a7f3d0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.party-squad {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.party-squad-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.party-squad-heading strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.party-squad-heading span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-align: right;
+}
+
+.party-call-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.party-call-grid[hidden] {
+  display: none;
+}
+
+.squad-video-tile {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 6px;
+  background: #17212b;
+}
+
+.squad-video-tile video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.squad-video-tile span {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  padding: 15px 7px 6px;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.76));
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.dark-mode .match-mode-switch {
+  background: rgba(15, 23, 42, 0.86);
+}
+
+body.dark-mode .match-mode-switch button[aria-pressed="true"] {
+  color: #062b24;
+}
+
+@media (max-width: 700px) {
+  .stage-action-bar {
+    flex-wrap: wrap;
+  }
+
+  .match-mode-switch {
+    flex: 1 0 100%;
+    justify-content: stretch;
+  }
+
+  .match-mode-switch button {
+    flex: 1;
+  }
+}

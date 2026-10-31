@@ -13,6 +13,15 @@ const state = {
   profile: null,
   currentPrompt: "",
   partyRoomCode: "",
+  matchMode: "video",
+  currentRoomMode: null,
+  squadCallJoined: false,
+  squadCallMembers: [],
+  squadPeerConnections: new Map(),
+  squadPeerNames: new Map(),
+  squadRemoteStreams: new Map(),
+  squadPendingCandidates: new Map(),
+  squadVideoTiles: new Map(),
   incomingFriendRequest: null,
   lastStatsSig: "",
   callStartTime: null,
@@ -141,6 +150,7 @@ const els = {
   matchQuality: byId("matchQuality"),
   matchHeadline: byId("matchHeadline"),
   matchDescription: byId("matchDescription"),
+  chatSubtitle: byId("chatSubtitle"),
   streak: byId("streakValue"),
   level: byId("levelValue"),
   xp: byId("xpValue"),
@@ -162,6 +172,10 @@ const els = {
   partyMembers: byId("partyMembers"),
   partyInput: byId("partyChatInput"),
   partySend: byId("partySendButton"),
+  partyCallButton: byId("partyCallButton"),
+  partyCallStatus: byId("partyCallStatus"),
+  partyCallGrid: byId("partyCallGrid"),
+  matchModeSwitch: byId("matchModeSwitch"),
   addFriend: byId("addFriendButton"),
   acceptFriend: byId("acceptFriendButton"),
   friendsCount: byId("friendsCount"),
@@ -881,6 +895,11 @@ function renderPartyState() {
   const inRoom = Boolean(state.partyRoomCode);
   setText(els.partyStatus, inRoom ? "In room" : "No room");
   setText(els.partyRoomLabel, inRoom ? `Room code: ${state.partyRoomCode}` : "No active room.");
+  if (els.partyCallButton) {
+    els.partyCallButton.disabled = !inRoom;
+    els.partyCallButton.textContent = state.squadCallJoined ? "Leave Squad Video" : "Join Squad Video";
+  }
+  renderPartyCall();
   if (!els.partyMembers) return;
   els.partyMembers.innerHTML = "";
   const members = Array.isArray(state.partyMembers) ? state.partyMembers : [];
@@ -894,6 +913,51 @@ function renderPartyState() {
     const row = document.createElement("span");
     row.textContent = member.name || "Yap User";
     els.partyMembers.appendChild(row);
+  });
+}
+
+function createSquadVideoTile(socketId, name, stream, isSelf = false) {
+  let tile = state.squadVideoTiles.get(socketId);
+  if (!tile) {
+    tile = document.createElement("div");
+    tile.className = "squad-video-tile";
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = isSelf;
+    const label = document.createElement("span");
+    tile.append(video, label);
+    state.squadVideoTiles.set(socketId, tile);
+  }
+  const video = tile.querySelector("video");
+  const label = tile.querySelector("span");
+  video.muted = isSelf;
+  if (video.srcObject !== stream) video.srcObject = stream;
+  label.textContent = isSelf ? `${name || "You"} · You` : name || "Squad member";
+  if (stream) video.play().catch(() => {});
+  return tile;
+}
+
+function renderPartyCall() {
+  if (!els.partyCallGrid) return;
+  const members = Array.isArray(state.squadCallMembers) ? state.squadCallMembers : [];
+  const joined = state.squadCallJoined && state.socket?.id;
+  els.partyCallGrid.replaceChildren();
+  if (!joined || members.length === 0) {
+    els.partyCallGrid.hidden = true;
+    setText(els.partyCallStatus, state.partyRoomCode ? "Ready for your squad" : "Join a room to call");
+    return;
+  }
+
+  els.partyCallGrid.hidden = false;
+  setText(els.partyCallStatus, `${members.length}/4 in call`);
+  members.forEach((member) => {
+    const isSelf = member.socketId === state.socket.id;
+    const stream = isSelf
+      ? ((state.animeChar !== "none" && state.filteredStream) ? state.filteredStream : state.stream)
+      : state.squadRemoteStreams.get(member.socketId);
+    const name = member.name || state.squadPeerNames.get(member.socketId);
+    els.partyCallGrid.appendChild(createSquadVideoTile(member.socketId, name, stream, isSelf));
   });
 }
 
@@ -994,7 +1058,15 @@ function nextPrompt() {
 // ── WebRTC helpers ────────────────────────────────────────────────────────────
 
 function currentMatchOptions() {
-  return { mode: "video", filter: "all", interests: state.profile?.interests || [] };
+  return { mode: state.matchMode, filter: "all", interests: state.profile?.interests || [] };
+}
+
+function setMatchMode(mode) {
+  state.matchMode = mode === "text" ? "text" : "video";
+  els.matchModeSwitch?.querySelectorAll("[data-match-mode]").forEach((button) => {
+    const selected = button.dataset.matchMode === state.matchMode;
+    button.setAttribute("aria-pressed", String(selected));
+  });
 }
 
 function describeQueue(payload = {}) {
@@ -1037,6 +1109,7 @@ function setDisconnectedUI(reason) {
   setText(els.matchQuality, reason || "Disconnected");
   setText(els.matchHeadline, "No active match");
   setText(els.matchDescription, "Press \"Find match\" to start chatting.");
+  setText(els.chatSubtitle, "Connect to start chatting");
   const pill = document.getElementById("matchQualityPill");
   if (pill) pill.hidden = true;
 }
@@ -1045,11 +1118,12 @@ function clearMatch(reason) {
   const elapsed = stopCallTimer();
   state.currentPeerId = null;
   state.currentRoomId = null;
+  state.currentRoomMode = null;
   state.incomingFriendRequest = null;
   setHidden(els.acceptFriend, true);
   setHidden(els.typingIndicator, true);
   clearTimeout(state.typingDisplayTimeout);
-  if (els.videoStack) els.videoStack.classList.remove("is-live");
+  if (els.videoStack) els.videoStack.classList.remove("is-live", "text-only-match");
   if (els.peerAnimeBadge) els.peerAnimeBadge.hidden = true;
   resetPeer();
   clearRemoteMedia();
@@ -1072,7 +1146,12 @@ function applyTracks() {
 }
 
 async function ensureLocalStream() {
-  if (state.stream) { applyTracks(); return true; }
+  if (state.stream) {
+    applyTracks();
+    setLocalStageVisible(true);
+    setLocalFallback("", false);
+    return true;
+  }
   if (!navigator.mediaDevices?.getUserMedia) {
     setLocalStageVisible(true);
     setLocalFallback("Camera preview needs a browser with media access.", true);
@@ -1129,6 +1208,94 @@ function createPeerConnection(peerId) {
   return pc;
 }
 
+function getOutgoingMediaStream() {
+  return (state.animeChar !== "none" && state.filteredStream) ? state.filteredStream : state.stream;
+}
+
+function replaceSquadVideoTrack(newVideoTrack) {
+  if (!newVideoTrack) return;
+  state.squadPeerConnections.forEach((pc) => {
+    const sender = pc.getSenders().find((item) => item.track?.kind === "video");
+    if (sender) sender.replaceTrack(newVideoTrack).catch(() => {});
+  });
+}
+
+function createSquadPeerConnection(peerId) {
+  const existing = state.squadPeerConnections.get(peerId);
+  if (existing) return existing;
+
+  const pc = new RTCPeerConnection(rtcConfig);
+  state.squadPeerConnections.set(peerId, pc);
+  pc.onicecandidate = (event) => {
+    if (event.candidate && state.socket) {
+      state.socket.emit("squad-webrtc-ice-candidate", { to: peerId, candidate: event.candidate });
+    }
+  };
+  pc.ontrack = (event) => {
+    const stream = event.streams[0] || new MediaStream([event.track]);
+    state.squadRemoteStreams.set(peerId, stream);
+    renderPartyCall();
+  };
+
+  const outgoing = getOutgoingMediaStream();
+  outgoing?.getTracks().forEach((track) => pc.addTrack(track, outgoing));
+  return pc;
+}
+
+async function flushSquadCandidates(peerId, pc) {
+  const candidates = state.squadPendingCandidates.get(peerId) || [];
+  state.squadPendingCandidates.delete(peerId);
+  for (const candidate of candidates) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {}
+  }
+}
+
+function closeSquadPeer(peerId) {
+  const pc = state.squadPeerConnections.get(peerId);
+  if (pc) {
+    pc.ontrack = null;
+    pc.onicecandidate = null;
+    pc.close();
+  }
+  state.squadPeerConnections.delete(peerId);
+  state.squadPeerNames.delete(peerId);
+  state.squadRemoteStreams.delete(peerId);
+  state.squadPendingCandidates.delete(peerId);
+  state.squadVideoTiles.get(peerId)?.remove();
+  state.squadVideoTiles.delete(peerId);
+  renderPartyCall();
+}
+
+function closeAllSquadPeers() {
+  Array.from(state.squadPeerConnections.keys()).forEach(closeSquadPeer);
+  state.squadPeerNames.clear();
+  state.squadRemoteStreams.clear();
+  state.squadPendingCandidates.clear();
+  state.squadVideoTiles.forEach((tile) => tile.remove());
+  state.squadVideoTiles.clear();
+}
+
+async function toggleSquadCall() {
+  if (!ensureAuthenticated("join Squad Video")) return;
+  if (!state.socket || !state.partyRoomCode) {
+    addMessage("System", "Join or create a party room before starting Squad Video.");
+    return;
+  }
+  if (state.squadCallJoined) {
+    state.socket.emit("squad-call-leave");
+    state.squadCallJoined = false;
+    state.squadCallMembers = [];
+    closeAllSquadPeers();
+    renderPartyState();
+    return;
+  }
+  const mediaReady = await ensureLocalStream();
+  if (!mediaReady) return;
+  state.socket.emit("squad-call-join");
+}
+
 // ── Socket Connection ─────────────────────────────────────────────────────────
 
 async function connectSocketIfNeeded() {
@@ -1177,6 +1344,9 @@ async function connectSocketIfNeeded() {
     clearMatch("Server disconnected");
     state.partyRoomCode = "";
     state.partyMembers = [];
+    state.squadCallJoined = false;
+    state.squadCallMembers = [];
+    closeAllSquadPeers();
     renderPartyState();
     addMessage("System", "Connection dropped. Reconnecting automatically...");
   });
@@ -1187,15 +1357,16 @@ async function connectSocketIfNeeded() {
   });
 
   socket.on("queued", (payload) => {
-    setText(els.queueStatus, "Searching...");
+    const isText = state.matchMode === "text";
+    setText(els.queueStatus, isText ? "Text queue" : "Video queue");
     setText(els.matchQuality, describeQueue(payload));
-    setText(els.matchHeadline, "Finding your next match");
+    setText(els.matchHeadline, isText ? "Finding a text match" : "Finding your next match");
     const interests = Array.isArray(payload.interests) ? payload.interests : [];
     setText(
       els.matchDescription,
       interests.length
-        ? `Prioritizing people who like ${interests.slice(0, 3).join(", ")}.`
-        : "Looking for the fastest good connection.",
+        ? `${isText ? "Text chat" : "Video chat"} with people who like ${interests.slice(0, 3).join(", ")}.`
+        : isText ? "Finding a text-only conversation." : "Looking for the fastest good connection.",
     );
     const pill = document.getElementById("matchQualityPill");
     if (pill) pill.hidden = true;
@@ -1205,10 +1376,14 @@ async function connectSocketIfNeeded() {
     const isNewRoom = payload.roomId && payload.roomId !== state.currentRoomId;
     state.currentPeerId = payload.peerId;
     state.currentRoomId = payload.roomId;
+    state.currentRoomMode = payload.mode === "text" ? "text" : "video";
     state.incomingFriendRequest = null;
     setHidden(els.acceptFriend, true);
     setHidden(els.typingIndicator, true);
-    if (els.videoStack) els.videoStack.classList.add("is-live");
+    if (els.videoStack) {
+      els.videoStack.classList.remove("text-only-match");
+      els.videoStack.classList.add("is-live");
+    }
     showMatchFlash();
     if (isNewRoom && state.profile) {
       state.profile.matchesCompleted = (state.profile.matchesCompleted || 0) + 1;
@@ -1240,6 +1415,22 @@ async function connectSocketIfNeeded() {
     renderMatchQuality(sharedInterests);
     addMessage("System", "You are connected. Keep the conversation respectful.");
     if (typeof toast !== "undefined") toast.info("New match found!", 3000);
+
+    if (state.currentRoomMode === "text") {
+      resetPeer();
+      clearRemoteMedia();
+      if (!state.squadCallJoined) state.stream?.getTracks().forEach((track) => { track.enabled = false; });
+      setLocalStageVisible(false);
+      if (els.videoStack) els.videoStack.classList.remove("is-live");
+      if (els.videoStack) els.videoStack.classList.add("text-only-match");
+      setText(els.queueStatus, "Text chat");
+      setText(els.matchHeadline, "Text match connected");
+      setText(els.matchDescription, "Say hi in the chat. Your camera stays off in text mode.");
+      setText(els.chatSubtitle, "Text match · camera off");
+      return;
+    }
+
+    setText(els.chatSubtitle, "Video match · chat is live");
     const mediaReady = await ensureLocalStream();
     if (!mediaReady) return;
     const pc = createPeerConnection(payload.peerId);
@@ -1306,6 +1497,41 @@ async function connectSocketIfNeeded() {
     renderPartyState();
   });
 
+  socket.on("squad-call-state", (payload = {}) => {
+    const members = Array.isArray(payload.members) ? payload.members : [];
+    const wasJoined = state.squadCallJoined;
+    state.squadCallMembers = members;
+    state.squadCallJoined = members.some((member) => member.socketId === socket.id);
+    if (wasJoined && !state.squadCallJoined) closeAllSquadPeers();
+    renderPartyState();
+  });
+
+  socket.on("squad-call-peers", async (payload = {}) => {
+    const peers = Array.isArray(payload.peers) ? payload.peers : [];
+    for (const peer of peers) {
+      if (!peer.socketId || peer.socketId === socket.id) continue;
+      state.squadPeerNames.set(peer.socketId, peer.name || "Squad member");
+      const pc = createSquadPeerConnection(peer.socketId);
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit("squad-webrtc-offer", { to: peer.socketId, sdp: pc.localDescription });
+      } catch (error) {
+        closeSquadPeer(peer.socketId);
+      }
+    }
+    renderPartyCall();
+  });
+
+  socket.on("squad-peer-joined", (payload = {}) => {
+    if (payload.peerId) state.squadPeerNames.set(payload.peerId, payload.name || "Squad member");
+    renderPartyCall();
+  });
+
+  socket.on("squad-peer-left", (payload = {}) => {
+    if (payload.peerId) closeSquadPeer(payload.peerId);
+  });
+
   socket.on("party-message", (payload = {}) => {
     addMessage(`Party · ${payload.fromName || "Member"}`, payload.text || "");
     playSound("message");
@@ -1340,6 +1566,47 @@ async function connectSocketIfNeeded() {
     } catch (error) {}
   });
 
+  socket.on("squad-webrtc-offer", async (payload = {}) => {
+    if (!payload.from || !payload.sdp || !state.squadCallJoined) return;
+    const mediaReady = await ensureLocalStream();
+    if (!mediaReady) return;
+    const pc = createSquadPeerConnection(payload.from);
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+      await flushSquadCandidates(payload.from, pc);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit("squad-webrtc-answer", { to: payload.from, sdp: pc.localDescription });
+    } catch (error) {
+      closeSquadPeer(payload.from);
+    }
+  });
+
+  socket.on("squad-webrtc-answer", async (payload = {}) => {
+    const pc = state.squadPeerConnections.get(payload.from);
+    if (!pc || !payload.sdp) return;
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+      await flushSquadCandidates(payload.from, pc);
+    } catch (error) {
+      closeSquadPeer(payload.from);
+    }
+  });
+
+  socket.on("squad-webrtc-ice-candidate", async (payload = {}) => {
+    if (!payload.from || !payload.candidate) return;
+    const pc = state.squadPeerConnections.get(payload.from);
+    if (!pc || !pc.remoteDescription) {
+      const pending = state.squadPendingCandidates.get(payload.from) || [];
+      pending.push(payload.candidate);
+      state.squadPendingCandidates.set(payload.from, pending);
+      return;
+    }
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+    } catch (error) {}
+  });
+
   return true;
 }
 
@@ -1349,7 +1616,7 @@ async function requestMatch(useNext = false) {
   if (!ensureAuthenticated("start chat")) return;
   const connected = await connectSocketIfNeeded();
   if (!connected || !state.socket) return;
-  await ensureLocalStream();
+  if (state.matchMode === "video" && !(await ensureLocalStream())) return;
   if (useNext || state.currentRoomId) {
     stopCallTimer();
     state.socket.emit("next-match", currentMatchOptions());
@@ -1452,9 +1719,13 @@ async function joinPartyRoom() {
 }
 
 function leavePartyRoom() {
+  if (state.squadCallJoined && state.socket) state.socket.emit("squad-call-leave");
   if (state.socket && state.partyRoomCode) state.socket.emit("party-leave");
   state.partyRoomCode = "";
   state.partyMembers = [];
+  state.squadCallJoined = false;
+  state.squadCallMembers = [];
+  closeAllSquadPeers();
   renderPartyState();
 }
 
@@ -1487,6 +1758,11 @@ if (els.acceptFriend) els.acceptFriend.addEventListener("click", async () => { a
 if (els.partyCreate) els.partyCreate.addEventListener("click", async () => { await createPartyRoom(); });
 if (els.partyJoin) els.partyJoin.addEventListener("click", async () => { await joinPartyRoom(); });
 if (els.partyLeave) els.partyLeave.addEventListener("click", leavePartyRoom);
+if (els.partyCallButton) els.partyCallButton.addEventListener("click", async () => { await toggleSquadCall(); });
+if (els.matchModeSwitch) els.matchModeSwitch.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-match-mode]");
+  if (button) setMatchMode(button.dataset.matchMode);
+});
 if (els.partySend) els.partySend.addEventListener("click", sendPartyMessage);
 if (els.refreshBoard) els.refreshBoard.addEventListener("click", async () => {
   const connected = await connectSocketIfNeeded();
@@ -1525,10 +1801,12 @@ if (els.partyInput) els.partyInput.addEventListener("keydown", (event) => {
 });
 if (els.localVideo) {
   els.localVideo.addEventListener("loadeddata", () => {
+    if (state.currentRoomMode === "text") return;
     setLocalStageVisible(true);
     setLocalFallback("", false);
   });
   els.localVideo.addEventListener("playing", () => {
+    if (state.currentRoomMode === "text") return;
     setLocalStageVisible(true);
     setLocalFallback("", false);
   });
@@ -1625,7 +1903,7 @@ function stopCanvasFilterLoop() {
 
 function stopFilteredStream() {
   if (!state.filteredStream) return;
-  state.filteredStream.getTracks().forEach((track) => track.stop());
+  state.filteredStream.getVideoTracks().forEach((track) => track.stop());
   state.filteredStream = null;
 }
 
@@ -1903,6 +2181,7 @@ function applyAnimeFilter(charId) {
     if (state.stream) {
       const rawVideo = state.stream.getVideoTracks()[0];
       replaceRTCVideoTrack(rawVideo);
+      replaceSquadVideoTrack(rawVideo);
     }
   } else {
     startCanvasFilterLoop(char);
@@ -1912,6 +2191,7 @@ function applyAnimeFilter(charId) {
     if (state.filteredStream) {
       const canvasVideo = state.filteredStream.getVideoTracks()[0];
       replaceRTCVideoTrack(canvasVideo);
+      replaceSquadVideoTrack(canvasVideo);
     }
   }
 

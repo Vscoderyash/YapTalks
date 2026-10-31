@@ -306,11 +306,31 @@ function emitPartyState(code) {
   });
 }
 
+function emitSquadCallState(code) {
+  const room = partyRooms.get(code);
+  if (!room) return;
+  const members = Array.from(room.callMembers || [])
+    .map((socketId) => ({
+      socketId,
+      name: userPresence.get(socketId)?.name || "Yap User",
+    }));
+  io.to(`party-${code}`).emit("squad-call-state", { code, members });
+}
+
+function leaveSquadCall(socketId, code = memberParty.get(socketId)) {
+  const room = code ? partyRooms.get(code) : null;
+  if (!room?.callMembers?.has(socketId)) return;
+  room.callMembers.delete(socketId);
+  io.to(`party-${code}`).emit("squad-peer-left", { peerId: socketId });
+  emitSquadCallState(code);
+}
+
 function leaveParty(socketId) {
   const code = memberParty.get(socketId);
   if (!code) return;
 
   const room = partyRooms.get(code);
+  leaveSquadCall(socketId, code);
   memberParty.delete(socketId);
   const socket = io.sockets.sockets.get(socketId);
   if (socket) socket.leave(`party-${code}`);
@@ -652,7 +672,7 @@ io.on("connection", (socket) => {
     }
     leaveParty(socket.id);
     const code = createPartyCode();
-    partyRooms.set(code, { members: new Set([socket.id]) });
+    partyRooms.set(code, { members: new Set([socket.id]), callMembers: new Set() });
     memberParty.set(socket.id, code);
     socket.join(`party-${code}`);
     emitPartyState(code);
@@ -688,6 +708,45 @@ io.on("connection", (socket) => {
       return;
     }
     leaveParty(socket.id);
+  });
+
+  socket.on("squad-call-join", () => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    const code = memberParty.get(socket.id);
+    const room = code ? partyRooms.get(code) : null;
+    if (!room) {
+      socket.emit("party-error", { message: "Join a party room before starting Squad Video." });
+      return;
+    }
+    if (!room.callMembers) room.callMembers = new Set();
+    if (room.callMembers.has(socket.id)) return;
+    if (room.callMembers.size >= 4) {
+      socket.emit("party-error", { message: "Squad Video is full. It supports four people at a time." });
+      return;
+    }
+
+    const peers = Array.from(room.callMembers).map((socketId) => ({
+      socketId,
+      name: userPresence.get(socketId)?.name || "Yap User",
+    }));
+    room.callMembers.add(socket.id);
+    socket.emit("squad-call-peers", { peers });
+    socket.to(`party-${code}`).emit("squad-peer-joined", {
+      peerId: socket.id,
+      name: identity.name,
+    });
+    emitSquadCallState(code);
+  });
+
+  socket.on("squad-call-leave", () => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    leaveSquadCall(socket.id);
   });
 
   socket.on("party-message", (payload = {}) => {
@@ -781,6 +840,39 @@ io.on("connection", (socket) => {
       return;
     }
     io.to(payload.to).emit("webrtc-ice-candidate", { from: socket.id, candidate: payload.candidate });
+  });
+
+  socket.on("squad-webrtc-offer", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    const code = memberParty.get(socket.id);
+    const room = code ? partyRooms.get(code) : null;
+    if (!room?.callMembers?.has(socket.id) || !room.callMembers.has(payload.to) || !payload.sdp) return;
+    io.to(payload.to).emit("squad-webrtc-offer", { from: socket.id, sdp: payload.sdp });
+  });
+
+  socket.on("squad-webrtc-answer", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    const code = memberParty.get(socket.id);
+    const room = code ? partyRooms.get(code) : null;
+    if (!room?.callMembers?.has(socket.id) || !room.callMembers.has(payload.to) || !payload.sdp) return;
+    io.to(payload.to).emit("squad-webrtc-answer", { from: socket.id, sdp: payload.sdp });
+  });
+
+  socket.on("squad-webrtc-ice-candidate", (payload = {}) => {
+    if (!checkRate(socket.id)) {
+      addSuspicion(socket.id, 20);
+      return;
+    }
+    const code = memberParty.get(socket.id);
+    const room = code ? partyRooms.get(code) : null;
+    if (!room?.callMembers?.has(socket.id) || !room.callMembers.has(payload.to) || !payload.candidate) return;
+    io.to(payload.to).emit("squad-webrtc-ice-candidate", { from: socket.id, candidate: payload.candidate });
   });
 
   socket.on("anime-theme", (payload = {}) => {
